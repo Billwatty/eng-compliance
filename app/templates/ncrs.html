@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Non-conformance reports</h1>
+<section class="card"><div class="tbl"><table><thead><tr><th>NCR</th><th>Lot</th><th>Rule</th><th>Description</th><th class="n">Deviation</th><th>Raised</th><th>Status</th><th>Disposition</th></tr></thead><tbody>
+{% for n in ncrs %}<tr><td>{{ n.id }}</td><td>{% if n.lot_id %}<a href="/lots/{{ n.lot_id }}">Lot {{ n.lot_id }}</a>{% endif %}</td><td class="mono">{{ n.rule_code }}</td><td>{{ n.description }}</td><td class="n bad">{{ n.deviation|num(3) }}</td><td>{{ n.raised_at[:10] }}</td>
+<td><span class="pill {{ 'fail' if n.status == 'open' else 'closed' }}">{{ n.status }}</span></td>
+<td>{% if n.status == 'open' %}<form class="inline" method="post" action="/ncrs/{{ n.id }}/close">
+ <select name="disposition" aria-label="Disposition"><option value="rework">Rework, then retest</option><option value="retest">Retest</option><option value="accept_with_reason">Accept with reason</option></select>
+ <input name="reason" placeholder="Reason" aria-label="Reason" required><button type="submit">Close</button></form>
+{% else %}{{ n.disposition }}: {{ n.reason }}<br><span class="muted">{{ n.closed_by }}, {{ n.closed_at[:10] }}</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="muted">No NCRs</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Documents</h1>
+<p class="muted">Every file is stored once, under its SHA-256 fingerprint, and can never be overwritten. Lab reports and supplier certificates can be read by AI; a person confirms every value.</p>
+<section class="card"><h2>Upload</h2>
+  <form class="stack" method="post" action="/documents" enctype="multipart/form-data">
+    <label>File<input type="file" name="file" required></label>
+    <label>Kind<select name="kind">{% for k in kinds %}<option>{{ k }}</option>{% endfor %}</select></label>
+    <label>Publisher (specs and standards)<input name="publisher" placeholder="MRH, GSA, ISO, ASTM"></label>
+    <label>Note<input name="caption"></label>
+    <button type="submit">Store</button>
+  </form>
+</section>
+<section class="card"><div class="tbl"><table><thead><tr><th>Doc</th><th>File</th><th>Kind</th><th>Source</th><th>Received</th><th>SHA-256</th><th>Status</th></tr></thead><tbody>
+{% for d in docs %}<tr><td><a href="/documents/{{ d.id }}">{{ d.id }}</a></td><td>{{ d.filename }}</td><td>{{ d.kind }}{% if d.publisher %} · {{ d.publisher }}{% endif %}</td><td>{{ d.source }}</td><td>{{ d.received_at[:16] }}</td><td class="mono">{{ d.sha256[:12] }}…</td><td><span class="pill {{ d.status }}">{{ d.status }}</span></td></tr>
+{% else %}<tr><td colspan="7" class="muted">No documents yet</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

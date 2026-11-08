@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Lots</h1>
+<p class="muted">A lot is one layer or pour between two chainages. It is a hold point: it cannot be paid until it passes and an engineer releases it.</p>
+<section class="card">
+  <div class="tbl"><table><thead><tr><th>Lot</th><th>BOQ</th><th>Layer</th><th>Chainage</th><th class="n">Size</th><th class="n">Quantity</th><th>Placed</th><th class="n">Results</th><th>Status</th></tr></thead><tbody>
+  {% for l in lots %}<tr><td><a href="/lots/{{ l.id }}">Lot {{ l.id }}</a></td><td class="mono">{{ l.boq_code }}</td><td>{{ l.layer }}</td>
+    <td class="mono">{{ l.ch_from|ch }} – {{ l.ch_to|ch }}</td><td class="n">{{ l.lot_size|num }}</td><td class="n">{{ l.quantity|num }}</td><td>{{ l.placed_on }}</td><td class="n">{{ l.n_tests }}</td>
+    <td><span class="pill {{ l.status }}">{{ l.status }}</span>{% if l.n_ncrs %} <span class="pill fail">{{ l.n_ncrs }} NCR</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="9" class="muted">No lots yet</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="card"><h2>New lot</h2>
+  <form class="stack" method="post" action="/lots">
+    <label>BOQ item<select name="boq_code">{% for b in boq %}<option value="{{ b.code }}">{{ b.code }} {{ b.description }}</option>{% endfor %}</select></label>
+    <label>Layer or structure<input name="layer" placeholder="Base layer 1"></label>
+    <label>From chainage<input name="ch_from" required placeholder="12+000"></label>
+    <label>To chainage<input name="ch_to" required placeholder="12+500"></label>
+    <label>Width (m)<input name="width_m" placeholder="7"></label>
+    <label>Or lot size for test frequency<input name="lot_size" placeholder="m², m³ or t"></label>
+    <label>Quantity in BOQ unit<input name="quantity" required></label>
+    <label>Placed on<input type="date" name="placed_on" value="{{ today }}" required></label>
+    <button type="submit">Create lot</button>
+  </form>
+</section>
+{% endblock %}

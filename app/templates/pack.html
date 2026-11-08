@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+{% set i = pack.ipc %}
+<h1>Evidence pack · IPC {{ i.number }}</h1>
+<p>{{ pack.contract.name }} · period to {{ i.period_end }} · status {{ i.status }}{% if i.certified_by %} · certified by {{ i.certified_by }} on {{ i.certified_at[:10] }}{% endif %}</p>
+<p>Payable {{ pack.contract.currency }} {{ pack.payable|num }} · held to next IPC {{ pack.contract.currency }} {{ pack.held|num }}</p>
+{% for l in pack.lines %}
+<section class="card">
+  <h2>{{ l.boq_code }} {{ l.boq_description }} <span class="pill {{ l.status }}">{{ l.status }}</span></h2>
+  <p>{% if l.ch_from is not none %}Chainage <span class="mono">{{ l.ch_from|ch }} – {{ l.ch_to|ch }}</span> · {% endif %}{{ l.quantity|num }} {{ l.unit }} × {{ l.rate|num }} = {{ l.amount|num }}</p>
+  {% for f in l.findings %}<div><span class="pill {{ f.result }}">{{ f.check }}</span> {{ f.message }}</div>{% endfor %}
+  {% if l.lots %}<table><thead><tr><th>Lot</th><th>Layer</th><th>Chainage</th><th>Status</th><th>Released by</th></tr></thead><tbody>
+  {% for lot in l.lots %}<tr><td><a href="/lots/{{ lot.id }}">{{ lot.id }}</a></td><td>{{ lot.layer }}</td><td class="mono">{{ lot.ch_from|ch }} – {{ lot.ch_to|ch }}</td><td>{{ lot.status }}</td><td>{{ lot.released_by or '' }} {{ (lot.released_at or '')[:10] }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  {% if l.reviewer %}<p>Reviewed by {{ l.reviewer }}{% if l.review_note %}: “{{ l.review_note }}”{% endif %}</p>{% endif %}
+</section>
+{% endfor %}
+<p class="muted">Every check, override and sign-off behind this pack is in the hash-chained <a href="/ledger">audit ledger</a>.</p>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Materials chain</h1>
+<p class="muted">Each material is followed from order to delivery, store and use. Purchase prices are not recorded here.</p>
+<div class="grid">
+<section class="card"><h2>M1 · Order matches spec</h2>
+  <table><tbody>{% for c in m1 %}<tr><td class="mono">{{ c.ref }}</td><td><span class="pill {{ c.result }}">{{ c.result }}</span></td><td>{{ c.message }}</td></tr>{% else %}<tr><td class="muted">No purchase orders</td></tr>{% endfor %}</tbody></table>
+</section>
+<section class="card"><h2>M2 · Delivery matches order</h2>
+  <table><tbody>{% for c in m2 %}<tr><td class="mono">{{ c.ref }}</td><td><span class="pill {{ c.result }}">{{ c.result }}</span></td><td>{{ c.message }}</td></tr>{% else %}<tr><td class="muted">No deliveries</td></tr>{% endfor %}</tbody></table>
+</section>
+</div>
+<section class="card"><h2>M3 · Store balance holds</h2>
+  <div class="tbl"><table><thead><tr><th>Material</th><th class="n">Received</th><th class="n">Issued</th><th class="n">Book</th><th class="n">Counted</th><th class="n">Difference</th><th>Result</th></tr></thead><tbody>
+  {% for s in m3 %}<tr><td>{{ s.material }} ({{ s.unit }})</td><td class="n">{{ s.received|num }}</td><td class="n">{{ s.issued|num }}</td><td class="n">{{ s.book|num }}</td><td class="n">{{ s.counted|num }}</td><td class="n {% if s.result == 'fail' %}bad{% endif %}">{{ s.difference|num }}</td><td><span class="pill {{ s.result }}">{{ s.result }}</span> {{ s.message }}</td></tr>{% else %}<tr><td colspan="7" class="muted">No store records</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="card"><h2>M4 · Use matches design</h2>
+  <p class="muted">Expected use = installed quantity × design rate. Issued below expected suggests under-dosing; above suggests waste or loss.</p>
+  <div class="tbl"><table><thead><tr><th>BOQ</th><th>Material</th><th class="n">Installed</th><th class="n">Rate</th><th class="n">Expected</th><th class="n">Issued</th><th class="n">Variance</th><th class="n">%</th><th>Result</th></tr></thead><tbody>
+  {% for v in m4 %}<tr><td class="mono">{{ v.boq_code }}</td><td>{{ v.material }} ({{ v.unit }})</td><td class="n">{{ v.installed|num }}</td><td class="n">{{ v.rate|num }}</td><td class="n">{{ v.expected|num }}</td><td class="n">{{ v.issued|num }}</td><td class="n {% if v.result == 'fail' %}bad{% endif %}">{{ v.variance|num }}</td><td class="n">{{ v.variance_pct|num }}</td><td><span class="pill {{ v.result }}">{{ v.result }}</span> {{ v.message }}</td></tr>{% else %}<tr><td colspan="9" class="muted">No design rates recorded</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<details class="card"><summary>Record orders, deliveries, store moves, approved sources and design rates</summary>
+  <h3>Approved source</h3>
+  <form class="stack" method="post" action="/materials/source"><label>Material<input name="material" required></label><label>Supplier<input name="supplier" required></label><label>Grade<input name="grade"></label><label>Approved by<input name="approved_by"></label><label>On<input type="date" name="approved_on"></label><button type="submit">Add</button></form>
+  <h3>Purchase order</h3>
+  <form class="stack" method="post" action="/materials/po"><label>PO ref<input name="po_ref" required></label><label>Supplier<input name="supplier" required></label><label>Material<input name="material" required></label><label>Grade<input name="grade"></label><label>Standard<input name="standard"></label><label>Quantity<input name="quantity" required></label><label>Unit<input name="unit" required></label><label>BOQ<input name="boq_code"></label><button type="submit">Add</button></form>
+  <h3>Delivery</h3>
+  <form class="stack" method="post" action="/materials/delivery"><label>Waybill<input name="waybill_no" required></label><label>PO ref<input name="po_ref"></label><label>Supplier<input name="supplier" required></label><label>Material<input name="material" required></label><label>Grade<input name="grade"></label><label>Quantity<input name="quantity" required></label><label>Unit<input name="unit" required></label><label>Heat no. on bar tag<input name="heat_no"></label><label>Heat no. on certificate<input name="cert_heat_no"></label><label><span>GSA marked</span><input type="checkbox" name="gsa_marked" value="1"></label><label>Delivered on<input type="date" name="delivered_on" value="{{ today }}"></label><button type="submit">Add</button></form>
+  <h3>Store move</h3>
+  <form class="stack" method="post" action="/materials/store"><label>Material<input name="material" required></label><label>Direction<select name="direction"><option value="in">Received</option><option value="out">Issued</option><option value="count">Physical count</option></select></label><label>Quantity<input name="quantity" required></label><label>Unit<input name="unit" required></label><label>Date<input type="date" name="moved_on" value="{{ today }}"></label><label>Issued to BOQ<input name="boq_code"></label><label>Chainage<input name="chainage"></label><label>Voucher ref<input name="ref"></label><button type="submit">Add</button></form>
+  <h3>Design rate</h3>
+  <form class="stack" method="post" action="/materials/rate"><label>BOQ<input name="boq_code" required></label><label>Material<input name="material" required></label><label>Rate per BOQ unit<input name="rate_per_unit" required></label><label>Material unit<input name="material_unit" required></label><label>Allowance %<input name="allowance_pct" value="3"></label><label>Source<input name="source" placeholder="Approved mix design MD-04"></label><button type="submit">Add</button></form>
+</details>
+{% endblock %}

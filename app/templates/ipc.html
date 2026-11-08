@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+{% set i = pack.ipc %}
+<h1>IPC {{ i.number }} · period to {{ i.period_end }} <span class="pill {{ i.status }}">{{ i.status }}</span></h1>
+<p>Payable {{ contract.currency }} {{ pack.payable|num }} · held {{ contract.currency }} {{ pack.held|num }}{% if i.certified_by %} · certified by {{ i.certified_by }} on {{ i.certified_at[:10] }}{% endif %}
+ · <a href="/ipcs/{{ i.id }}/pack">Evidence pack</a> · <a href="/ipcs/{{ i.id }}/pack.csv">CSV</a></p>
+<section class="card">
+  <div class="tbl"><table><thead><tr><th>BOQ</th><th>Chainage</th><th class="n">Qty</th><th class="n">Amount</th><th>Status</th><th>Findings</th><th>Review</th></tr></thead><tbody>
+  {% for l in pack.lines %}<tr>
+    <td class="mono">{{ l.boq_code }}<br><span class="muted">{{ l.boq_description }}</span></td>
+    <td class="mono">{% if l.ch_from is not none %}{{ l.ch_from|ch }} – {{ l.ch_to|ch }}{% endif %}</td>
+    <td class="n">{{ l.quantity|num }} {{ l.unit }}</td><td class="n">{{ l.amount|num }}</td>
+    <td><span class="pill {{ l.status }}">{{ l.status }}</span></td>
+    <td>{% for f in l.findings %}<div><span class="pill {{ f.result }}">{{ f.check }}</span> {{ f.message }}</div>{% endfor %}</td>
+    <td>{% if l.reviewer %}{{ l.reviewer }}{% if l.review_note %}: {{ l.review_note }}{% endif %}{% endif %}
+      {% if i.status != 'certified' and l.status in ('complete', 'exception', 'reviewed', 'held') %}
+      <form class="inline" method="post" action="/ipc-lines/{{ l.id }}/review"><input type="hidden" name="ipc_id" value="{{ i.id }}">
+        <input name="note" placeholder="{{ 'Reason for override (required)' if l.status == 'exception' else 'Note' }}" aria-label="Review note">
+        <button name="decision" value="accept" type="submit">{{ 'Override and accept' if l.status == 'exception' else 'Accept' }}</button>
+        <button class="secondary" name="decision" value="hold" type="submit">Hold</button></form>{% endif %}</td>
+  </tr>{% else %}<tr><td colspan="7" class="muted">No lines yet</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if i.status != 'certified' %}
+  <div class="grid">
+    <form method="post" action="/ipcs/{{ i.id }}/check"><button type="submit">Run checks</button> <span class="muted">Checks BOQ limits, duplicates, released lots, open NCRs and material use.</span></form>
+    <form method="post" action="/ipcs/{{ i.id }}/certify"><button class="danger" type="submit">Certify IPC</button> <span class="muted">Resident Engineer only. Every line must be reviewed or held.</span></form>
+  </div>{% endif %}
+</section>
+{% if i.status != 'certified' %}
+<section class="card"><h2>Add claim lines</h2>
+  <form class="stack" method="post" action="/ipcs/{{ i.id }}/lines" enctype="multipart/form-data">
+    <label>BOQ<select name="boq_code"><option value="">—</option>{% for b in boq %}<option value="{{ b.code }}">{{ b.code }} {{ b.description }}</option>{% endfor %}</select></label>
+    <label>Quantity<input name="quantity"></label><label>From<input name="ch_from" placeholder="12+000"></label><label>To<input name="ch_to" placeholder="12+500"></label>
+    <label>Description<input name="description"></label>
+    <label>Or CSV (boq_code, quantity, ch_from, ch_to, description)<input type="file" name="file" accept=".csv"></label>
+    <button type="submit">Add</button>
+  </form>
+</section>{% endif %}
+{% endblock %}

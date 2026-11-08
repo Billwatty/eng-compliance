@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Set up the contract</h1>
+<p class="muted">Start with the contract this pilot covers. You can load a demo contract instead by running <span class="mono">python -m scripts.seed_demo</span>.</p>
+<form class="card stack" method="post" action="/contract">
+  <label>Contract name<input name="name" required placeholder="GMACP Lot 2B: Hohoe–Jasikan road"></label>
+  <label>Employer<input name="employer" placeholder="Ghana Highway Authority"></label>
+  <label>Supervising consultant<input name="consultant"></label>
+  <label>Contractor<input name="contractor"></label>
+  <button type="submit">Create contract</button>
+</form>
+{% endblock %}

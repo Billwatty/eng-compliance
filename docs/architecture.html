@@ -1,0 +1,494 @@
+<title>Verify Before Certify</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column for prose, with diagrams allowed to run wider in their own scroll boxes. Laterite red = human decisions, steel blue = deterministic rules, dashed = AI. */
+:root{
+  --bg:#f4f6f4; --surface:#ffffff; --ink:#1b2220; --muted:#5a6661; --line:#cfd6d2;
+  --laterite:#b04a22; --laterite-tint:#f6e3da; --steel:#2c5c88; --amber:#9a6a12; --amber-tint:#f7ecd5;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --ink:#e3e9e5; --muted:#9aa6a0; --line:#323b37;
+  --laterite:#e47b4f; --laterite-tint:#3a2219; --steel:#7aaedc; --amber:#d9a54a; --amber-tint:#3a2e16; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --ink:#e3e9e5; --muted:#9aa6a0; --line:#323b37;
+  --laterite:#e47b4f; --laterite-tint:#3a2219; --steel:#7aaedc; --amber:#d9a54a; --amber-tint:#3a2e16; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+.prose{max-width:68ch}
+header{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1,h2,h3{font-family:var(--display);font-stretch:87%;text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(34px,5vw,52px);font-weight:700}
+h2{font-size:26px;font-weight:700}
+h3{font-size:18px;font-weight:700}
+p{margin:0}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+section{display:flex;flex-direction:column;gap:16px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:22px;height:14px;border-radius:3px;border:1.5px solid var(--line);background:var(--surface);display:inline-block}
+.sw.ai{border:1.5px dashed var(--laterite)}
+.sw.ru{border-color:var(--steel)}
+.sw.hu{background:var(--laterite-tint);border-color:var(--laterite)}
+.sw.hs{background:var(--laterite);border-color:var(--laterite)}
+.sw.tr{border:1.5px dotted var(--muted)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+svg.dg{display:block;width:100%;height:auto;min-width:900px}
+figcaption{font-size:14px;color:var(--muted);max-width:80ch}
+/* diagram styling */
+.dg .n,.dg .src{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.dg .src{fill:var(--bg)}
+.dg .ai{fill:var(--surface);stroke:var(--laterite);stroke-width:1.5;stroke-dasharray:5 4}
+.dg .ru{fill:var(--surface);stroke:var(--steel);stroke-width:2}
+.dg .hu{fill:var(--laterite-tint);stroke:var(--laterite);stroke-width:1.5}
+.dg .hs{fill:var(--laterite);stroke:var(--laterite)}
+.dg .ex{fill:var(--amber-tint);stroke:var(--amber);stroke-width:1.5}
+.dg .tr{fill:var(--surface);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 3}
+.dg .edge{fill:none;stroke:var(--muted);stroke-width:1.4}
+.dg .edge.thin{stroke-width:1}
+.dg .edge.dash{stroke-dasharray:4 4}
+.dg .ahead{fill:var(--muted)}
+.dg text{fill:var(--ink);font-family:var(--body)}
+.dg .tt{font-size:13px;font-weight:600}
+.dg .ts{font-size:11px;fill:var(--muted)}
+.dg .tm{font-size:12px;font-family:var(--mono)}
+.dg .tl{font-size:11px;fill:var(--muted);font-family:var(--mono)}
+.dg .th{font-size:11px;font-family:var(--mono);letter-spacing:.1em;fill:var(--muted)}
+.dg .tg{font-size:12px;font-weight:600;fill:var(--muted)}
+.dg .inv{fill:var(--bg)}
+/* table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;width:22%}
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);white-space:nowrap}
+.tag.pub{border-color:var(--steel);color:var(--steel)}
+.tag.paid{border-color:var(--amber);color:var(--amber)}
+.tag.ver{border-color:var(--laterite);color:var(--laterite)}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:28px 40px}
+.qa article{display:flex;flex-direction:column;gap:8px;min-width:0}
+.qa ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:24px 40px}
+.cols ul,.open ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--laterite)}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.bul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--steel);border-radius:6px;overflow-x:auto}
+.card pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--ink)}
+.card .k{color:var(--steel)}
+.note{font-size:13px;color:var(--muted);max-width:80ch}
+table.num{min-width:640px}
+table.num td{font-family:var(--mono);font-variant-numeric:tabular-nums;width:auto;font-weight:400}
+table.num td:first-child{font-family:var(--body);font-weight:600}
+td.bad{color:var(--laterite);font-weight:600}
+h3{margin-top:12px}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+a{color:var(--steel)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Ghana road works · supervising consultant edition · 8 Nov 2026</div>
+  <h1>Verify before you certify</h1>
+  <p class="lede">Architecture for a tool that runs quality control on every layer, pour and delivery against the contract's specification, then checks every line of the contractor's payment claim against that approved evidence before the Resident Engineer signs the Interim Payment Certificate (IPC). Jump to <a href="#quality-control">quality control</a>, the <a href="#materials">materials chain</a> or the <a href="#standards">standards library</a>.</p>
+  <div class="legend" aria-label="Diagram legend">
+    <span><i class="sw ai"></i>AI step, always reviewed</span>
+    <span><i class="sw ru"></i>Deterministic rules</span>
+    <span><i class="sw hu"></i>Human review</span>
+    <span><i class="sw hs"></i>Human sign-off</span>
+    <span><i class="sw tr"></i>Tamper-evident record</span>
+  </div>
+</header>
+
+<section>
+  <h2>System architecture</h2>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1320 700" role="img" aria-label="Architecture: requirements and evidence enter through a setup portal, an offline field app and a WhatsApp or email inbox. AI drafts rules and reads documents; an engineer approves rules; a deterministic rules engine checks the evidence graph; exceptions go to a review queue; only the Resident Engineer certifies. Every file and decision is written to a tamper-evident vault and ledger."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><text class="th" x="20" y="24">SOURCES</text><text class="th" x="290" y="24">CAPTURE</text><text class="th" x="540" y="24">PROCESS</text><text class="th" x="810" y="24">CORE</text><text class="th" x="1090" y="24">DECIDE + OUTPUT</text><text class="tg" x="20" y="52">Requirements</text><rect class="src" x="20" y="62" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="84.0" text-anchor="middle">Contract + conditions</text><rect class="src" x="20" y="106" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="128.0" text-anchor="middle">BOQ + variations</text><rect class="src" x="20" y="150" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="172.0" text-anchor="middle">MRH specs + manuals</text><rect class="src" x="20" y="194" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="216.0" text-anchor="middle">Standards (licence-gated)</text><rect class="src" x="20" y="238" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="260.0" text-anchor="middle">Engineer&#x27;s approvals</text><path class="edge" d="M235,80 L235,256"/><path class="edge" d="M220,80 L235,80"/><path class="edge" d="M220,124 L235,124"/><path class="edge" d="M220,168 L235,168"/><path class="edge" d="M220,212 L235,212"/><path class="edge" d="M220,256 L235,256"/><path class="edge" d="M235,168 L288,168" marker-end="url(#ah)"/><text class="tg" x="20" y="300">Evidence</text><rect class="src" x="20" y="310" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="332.0" text-anchor="middle">Field records + photos</text><rect class="src" x="20" y="354" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="376.0" text-anchor="middle">Site diary, NCRs</text><rect class="src" x="20" y="398" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="420.0" text-anchor="middle">Lab test reports</text><rect class="src" x="20" y="442" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="464.0" text-anchor="middle">POs, certs, waybills</text><rect class="src" x="20" y="486" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="508.0" text-anchor="middle">Store + plant records</text><rect class="src" x="20" y="530" width="200" height="36" rx="6"/><text class="tt" x="120.0" y="552.0" text-anchor="middle">Contractor payment claim</text><path class="edge" d="M235,328 L235,372"/><path class="edge" d="M220,328 L235,328"/><path class="edge" d="M220,372 L235,372"/><path class="edge" d="M235,350 L288,350" marker-end="url(#ah)"/><path class="edge" d="M235,416 L235,548"/><path class="edge" d="M220,416 L235,416"/><path class="edge" d="M220,460 L235,460"/><path class="edge" d="M220,504 L235,504"/><path class="edge" d="M220,548 L235,548"/><path class="edge" d="M235,460 L288,460" marker-end="url(#ah)"/><rect class="n" x="290" y="143" width="180" height="50" rx="6"/><text class="tt" x="380.0" y="165.0" text-anchor="middle">Project setup portal</text><text class="ts" x="380.0" y="181.0" text-anchor="middle">web · Excel · PDF</text><rect class="n" x="290" y="325" width="180" height="50" rx="6"/><text class="tt" x="380.0" y="347.0" text-anchor="middle">Offline Android app</text><text class="ts" x="380.0" y="363.0" text-anchor="middle">syncs when signal returns</text><rect class="n" x="290" y="435" width="180" height="50" rx="6"/><text class="tt" x="380.0" y="457.0" text-anchor="middle">Intake inbox</text><text class="ts" x="380.0" y="473.0" text-anchor="middle">WhatsApp · email · upload</text><rect class="ai" x="540" y="143" width="200" height="50" rx="6"/><text class="tt" x="640.0" y="165.0" text-anchor="middle">Requirements compiler</text><text class="ts" x="640.0" y="181.0" text-anchor="middle">AI drafts rules from text</text><rect class="hu" x="540" y="223" width="200" height="44" rx="6"/><text class="tt" x="640.0" y="249.0" text-anchor="middle">Engineer approves rules</text><rect class="ai" x="540" y="435" width="200" height="50" rx="6"/><text class="tt" x="640.0" y="457.0" text-anchor="middle">OCR + field extraction</text><text class="ts" x="640.0" y="473.0" text-anchor="middle">AI reads scans and photos</text><rect class="ai" x="540" y="525" width="200" height="50" rx="6"/><text class="tt" x="640.0" y="547.0" text-anchor="middle">Matcher</text><text class="ts" x="640.0" y="563.0" text-anchor="middle">AI links to BOQ item + chainage</text><path class="edge" d="M470,168 L538,168" marker-end="url(#ah)"/><text class="tl" x="476" y="160" text-anchor="start">spec text</text><path class="edge" d="M640.0,193 L640.0,221" marker-end="url(#ah)"/><text class="tl" x="648.0" y="212" text-anchor="start">draft rules</text><path class="edge" d="M470,460 L538,460" marker-end="url(#ah)"/><text class="tl" x="476" y="452" text-anchor="start">scans</text><path class="edge" d="M640.0,485 L640.0,523" marker-end="url(#ah)"/><text class="tl" x="648.0" y="508" text-anchor="start">fields + confidence</text><path class="edge" d="M470,350 L490,350 L490,400 L808,400" marker-end="url(#ah)"/><text class="tl" x="550" y="392" text-anchor="start">structured · GPS · time</text><rect class="ru" x="810" y="223" width="210" height="44" rx="6"/><text class="tt" x="915.0" y="242.0" text-anchor="middle">Rule library</text><text class="ts" x="915.0" y="258.0" text-anchor="middle">versioned per contract</text><rect class="ru" x="810" y="300" width="210" height="50" rx="6"/><text class="tt" x="915.0" y="322.0" text-anchor="middle">Rules engine</text><text class="ts" x="915.0" y="338.0" text-anchor="middle">same inputs, same result</text><rect class="n" x="810" y="385" width="210" height="190" rx="6"/><text class="tt" x="915.0" y="407" text-anchor="middle">Evidence graph</text><text class="tm" x="915.0" y="432" text-anchor="middle">BOQ item</text><path class="edge thin" d="M915.0,437 L915.0,449"/><text class="tm" x="915.0" y="460" text-anchor="middle">chainage + layer</text><path class="edge thin" d="M915.0,465 L915.0,477"/><text class="tm" x="915.0" y="488" text-anchor="middle">quantity claimed</text><path class="edge thin" d="M915.0,493 L915.0,505"/><text class="tm" x="915.0" y="516" text-anchor="middle">sample → test result</text><path class="edge thin" d="M915.0,521 L915.0,533"/><text class="tm" x="915.0" y="544" text-anchor="middle">material lot → certificate</text><path class="edge" d="M740,245 L808,245" marker-end="url(#ah)"/><text class="tl" x="746" y="237" text-anchor="start">approved</text><path class="edge" d="M915.0,267 L915.0,298" marker-end="url(#ah)"/><text class="tl" x="923.0" y="287" text-anchor="start">rules</text><path class="edge" d="M915.0,385 L915.0,352" marker-end="url(#ah)"/><text class="tl" x="923.0" y="372" text-anchor="start">evidence</text><path class="edge" d="M740,550 L808,550" marker-end="url(#ah)"/><text class="tl" x="746" y="542" text-anchor="start">links</text><rect class="hu" x="1090" y="300" width="200" height="50" rx="6"/><text class="tt" x="1190.0" y="322.0" text-anchor="middle">Review queue</text><text class="ts" x="1190.0" y="338.0" text-anchor="middle">inspector · quantity surveyor</text><rect class="hs" x="1090" y="385" width="200" height="50" rx="6"/><text class="tt inv" x="1190.0" y="407.0" text-anchor="middle">Resident Engineer signs</text><text class="ts inv" x="1190.0" y="423.0" text-anchor="middle">only people accept work</text><rect class="n" x="1090" y="475" width="200" height="36" rx="6"/><text class="tt" x="1190.0" y="497.0" text-anchor="middle">IPC evidence pack</text><rect class="n" x="1090" y="519" width="200" height="36" rx="6"/><text class="tt" x="1190.0" y="541.0" text-anchor="middle">Exceptions + NCR log</text><rect class="n" x="1090" y="563" width="200" height="36" rx="6"/><text class="tt" x="1190.0" y="585.0" text-anchor="middle">Client / World Bank view</text><path class="edge" d="M1020,325 L1088,325" marker-end="url(#ah)"/><text class="tl" x="1024" y="317" text-anchor="start">exceptions</text><path class="edge" d="M1190.0,350 L1190.0,383" marker-end="url(#ah)"/><text class="tl" x="1198.0" y="371" text-anchor="start">reviewed</text><path class="edge" d="M1190.0,435 L1190.0,473" marker-end="url(#ah)"/><text class="tl" x="1198.0" y="458" text-anchor="start">certified</text><text class="tg" x="290" y="632">Trust layer</text><rect class="tr" x="290" y="642" width="450" height="46" rx="6"/><text class="tt" x="515.0" y="662.0" text-anchor="middle">File vault</text><text class="ts" x="515.0" y="678.0" text-anchor="middle">every original · SHA-256 on arrival · write-once</text><rect class="tr" x="810" y="642" width="480" height="46" rx="6"/><text class="tt" x="1050.0" y="662.0" text-anchor="middle">Audit ledger</text><text class="ts" x="1050.0" y="678.0" text-anchor="middle">every rule version, check, override and sign-off · hash-chained</text><path class="edge dash" d="M380.0,485 L380.0,640" marker-end="url(#ah)"/><text class="tl" x="388.0" y="600" text-anchor="start">originals</text><path class="edge dash" d="M915.0,575 L915.0,640" marker-end="url(#ah)"/><text class="tl" x="923.0" y="612" text-anchor="start">every check</text><path class="edge dash" d="M1290,410 L1304,410 L1304,620 L1230.0,620 L1230.0,640" marker-end="url(#ah)"/><text class="tl" x="1238.0" y="614" text-anchor="start">sign-offs</text></svg></div>
+    <figcaption>AI only reads and proposes. Every pass or fail comes from a rule an engineer approved, and only the Resident Engineer accepts work. Every original file and every decision lands in the trust layer, so an auditor can replay any IPC.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>What happens to one BOQ line in a payment cycle</h2>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1060 275" role="img" aria-label="Each BOQ line moves from claimed, to evidence linked, to rules checked. Lines that pass are spot-checked; lines with exceptions are fixed or overridden with a written reason. Reviewed lines are certified by the Resident Engineer or held back to the next IPC. New evidence sends an exception back for re-checking."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="src" x="10" y="100" width="130" height="50" rx="6"/><text class="tt" x="75.0" y="122.0" text-anchor="middle">Claimed</text><text class="ts" x="75.0" y="138.0" text-anchor="middle">by contractor</text><rect class="ai" x="175" y="100" width="140" height="50" rx="6"/><text class="tt" x="245.0" y="122.0" text-anchor="middle">Evidence linked</text><text class="ts" x="245.0" y="138.0" text-anchor="middle">matcher</text><rect class="ru" x="350" y="100" width="140" height="50" rx="6"/><text class="tt" x="420.0" y="122.0" text-anchor="middle">Rules checked</text><text class="ts" x="420.0" y="138.0" text-anchor="middle">rules engine</text><rect class="n" x="540" y="30" width="140" height="50" rx="6"/><text class="tt" x="610.0" y="52.0" text-anchor="middle">Complete</text><text class="ts" x="610.0" y="68.0" text-anchor="middle">all checks pass</text><rect class="ex" x="540" y="170" width="140" height="50" rx="6"/><text class="tt" x="610.0" y="192.0" text-anchor="middle">Exception</text><text class="ts" x="610.0" y="208.0" text-anchor="middle">gap or fail + reason</text><rect class="hu" x="725" y="100" width="140" height="50" rx="6"/><text class="tt" x="795.0" y="122.0" text-anchor="middle">Reviewed</text><text class="ts" x="795.0" y="138.0" text-anchor="middle">inspector / QS</text><rect class="hs" x="905" y="30" width="140" height="50" rx="6"/><text class="tt inv" x="975.0" y="52.0" text-anchor="middle">Certified</text><text class="ts inv" x="975.0" y="68.0" text-anchor="middle">RE signs, enters IPC</text><rect class="n" x="905" y="170" width="140" height="50" rx="6"/><text class="tt" x="975.0" y="192.0" text-anchor="middle">Held back</text><text class="ts" x="975.0" y="208.0" text-anchor="middle">carried to next IPC</text><path class="edge" d="M140,125 L173,125" marker-end="url(#ah)"/><path class="edge" d="M315,125 L348,125" marker-end="url(#ah)"/><path class="edge" d="M490,115 L515,115 L515,55 L538,55" marker-end="url(#ah)"/><text class="tl" x="520" y="47" text-anchor="start">all pass</text><path class="edge" d="M490,135 L515,135 L515,195 L538,195" marker-end="url(#ah)"/><text class="tl" x="520" y="238" text-anchor="start">gap or fail</text><path class="edge" d="M680,55 L700,55 L700,115 L723,115" marker-end="url(#ah)"/><text class="tl" x="640" y="22" text-anchor="start">spot check</text><path class="edge" d="M680,195 L700,195 L700,135 L723,135" marker-end="url(#ah)"/><text class="tl" x="620" y="238" text-anchor="start">fix or override + reason</text><path class="edge" d="M865,115 L882,115 L882,55 L903,55" marker-end="url(#ah)"/><text class="tl" x="868" y="22" text-anchor="start">RE signs</text><path class="edge" d="M865,135 L882,135 L882,195 L903,195" marker-end="url(#ah)"/><text class="tl" x="880" y="238" text-anchor="start">unresolved</text><path class="edge dash" d="M610,220 L610,262 L245,262 L245,152" marker-end="url(#ah)"/><text class="tl" x="260" y="256" text-anchor="start">new evidence arrives → re-check</text></svg></div>
+    <figcaption>A line enters the IPC only after a person reviews it. An override needs a written reason, which goes to the ledger. A line that stays unresolved is held back to the next IPC instead of blocking the whole certificate.</figcaption>
+  </figure>
+</section>
+
+<section id="quality-control">
+  <p class="eyebrow">Quality control</p>
+  <h2>How quality is measured, judged and reported</h2>
+  <p class="prose">Payment checks only work if the quality checks under them are right. This section covers what each test is measured against, where those limits come from, when each piece of data enters the system, how a deviation is calculated, and which reports come out.</p>
+
+  <h3>1. What the work is measured against</h3>
+  <p class="prose">The contract decides. When two documents give different limits, the contract's priority-of-documents clause says which one wins. The usual order on a Ghana road contract is:</p>
+  <ol class="prose steps">
+    <li><b>Particular or special specification.</b> Changes written for this contract.</li>
+    <li><b>Standard Specification for Road and Bridge Works.</b> The Ghana Highway Authority and Ministry of Roads and Highways specification that sets most limits for earthworks, pavement layers, asphalt, concrete and bridges.</li>
+    <li><b>Referenced product and test standards.</b> GS 788-2:2018 for reinforcing steel, which is close to BS 4449. Also the cement standard, and the BS EN, AASHTO or GHA test methods named in the specification.</li>
+    <li><b>Approved project values.</b> These are the job mix formula for asphalt, the concrete mix design, and the maximum dry density (MDD) of each approved gravel source. Many limits are written relative to these, such as "97% of MDD", so they are data the tool must store, not fixed constants.</li>
+  </ol>
+
+  <h3>2. Where the standard data comes from and how it gets in</h3>
+  <ul class="prose bul">
+    <li><b>Specification text:</b> the consultant uploads the contract's specification PDFs at setup.</li>
+    <li><b>Draft rules:</b> AI reads each clause and drafts a rule card with the clause reference. The materials engineer checks every card against the page, corrects it and approves it. Nothing is used until it is approved.</li>
+    <li><b>Paid standards:</b> these go through the licence-gated <a href="#standards">standards library</a>. When a publisher's AI licence is signed, AI extracts the limits for the engineer to approve. Until then, the engineer types the values from the firm's licensed copy, and only the numbers and clause numbers are stored.</li>
+    <li><b>Reference values:</b> MDD, job mix formula and mix design come from approved lab tests and approval letters. Each rule that depends on one is linked to it.</li>
+    <li><b>Changes:</b> an engineer's instruction or a variation creates a new rule version with an effective date. Every test is judged by the rule version in force on the day it was taken.</li>
+  </ul>
+  <div class="card" aria-label="Example rule card">
+<pre><span class="k">rule</span>        BASE-DENSITY-01   v1 · approved by Resident Engineer, 14 Jan
+<span class="k">applies to</span>  BOQ 5.2  Natural gravel base, G60
+<span class="k">measures</span>    field dry density as % of MDD  (method GHA S1)
+<span class="k">reference</span>   MDD of approved source "Borrow pit B3", lab test LT-0117
+<span class="k">limit</span>       each test ≥ 97%   and   lot mean ≥ 98%
+<span class="k">lot</span>         one layer between two chainages
+<span class="k">frequency</span>   at least 1 test per 350 m² of layer
+<span class="k">source</span>      Standard Specification Table 12.2, Version 3 (Dec 2006)
+<span class="k">overridden</span>  by Particular Specification, if a clause exists</pre>
+  </div>
+  <p class="note">The example limits come from unofficial online copies of the 2006–07 Standard Specification (<a href="https://pdfcoffee.com/standard-specification-for-road-and-bridge-works-ghana-pdf-free.html">copy 1</a>, <a href="https://www.scribd.com/document/754499154/GSSRB-Final-Report-Oct-07">copy 2</a>). Confirm each one against the edition named in your contract.</p>
+
+  <h3>3. Typical checks on a Ghana road contract</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Material or work</th><th>What is measured</th><th>Measured against</th><th>Example limit</th><th>How often</th><th>Limit type</th></tr></thead>
+    <tbody>
+      <tr><td>Gravel base course</td><td>Field density</td><td>MDD by GHA S1</td><td>Each ≥ 97%, mean ≥ 98% <span class="tag ver">verify</span></td><td>1 per 350 m² per layer <span class="tag ver">verify</span></td><td>Minimum plus lot average</td></tr>
+      <tr><td>Gravel subbase</td><td>Field density</td><td>MDD by GHA S1</td><td>Each ≥ 94%, mean ≥ 95% <span class="tag ver">verify</span></td><td>1 per 350 m² per layer</td><td>Minimum plus lot average</td></tr>
+      <tr><td>Gravel source</td><td>MDD and optimum moisture</td><td>GHA S1 compaction test</td><td>Becomes the reference value</td><td>Each new source, then at intervals</td><td>Reference</td></tr>
+      <tr><td>Base and subbase</td><td>Layer thickness from levels</td><td>Design thickness</td><td>Base +0 / −25, subbase +0 / −35, units assumed mm <span class="tag ver">verify</span></td><td>Per level grid</td><td>Tolerance band</td></tr>
+      <tr><td>Asphalt</td><td>Binder content, grading, Marshall stability and flow, core density, thickness</td><td>Approved job mix formula</td><td>From the contract. Compacted layer at least 3 times the maximum aggregate size for wearing course</td><td>Per day's production and per core location</td><td>Band around target, minimum</td></tr>
+      <tr><td>Aggregates</td><td>Grading per sieve</td><td>Grading envelope in the spec</td><td>Each sieve inside the band</td><td>Per stockpile or lot</td><td>Envelope</td></tr>
+      <tr><td>Structural concrete</td><td>Cube compressive strength at 7 and 28 days</td><td>Specified class, such as C30/37 on the Eastern Corridor bridges</td><td>Mean and individual criteria, for example BS EN 206 <span class="tag ver">verify</span></td><td>Per pour or volume</td><td>Statistical</td></tr>
+      <tr><td>Reinforcing steel</td><td>Bar size, mass per metre, yield, tensile, elongation, marking</td><td>GS 788-2 or BS 4449, plus the mill certificate</td><td>Values from the licensed standard</td><td>Per delivery or heat number</td><td>Minimum, range, certificate check</td></tr>
+      <tr><td>Cement</td><td>Strength class, setting time</td><td>Ghana cement standard, aligned to EN 197-1 <span class="tag ver">verify</span></td><td>From the supplier certificate</td><td>Per delivery</td><td>Certificate check</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">The concrete class comes from the <a href="https://audit.gov.gh/files/audit_reports/Performance_Audit_Report_of_the_Auditor-General_on_Selected_Road_Works_in_Ghana-1.pdf">Auditor-General's 2019 road works audit</a>. The rebar standard comes from <a href="https://gna.org.gh/2023/02/ghana-standards-authority-to-engage-iron-rod-dealers-on-february-16/">GSA statements reported in 2023</a>.</p>
+
+  <h3>4. When data enters the system</h3>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1225 300" role="img" aria-label="Quality control loop: before work, spec rules, reference values and the inspection and test plan are approved. For each layer the contractor requests inspection, tests, and the consultant checks a share. The tool compares results to the rule: a pass releases the hold point; a fail raises an NCR and the engineer decides rework, retest or accept with a reason. Results feed the monthly QC report, the IPC and the completion dossier."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><text class="th" x="10" y="22">BEFORE WORK STARTS</text><text class="th" x="300" y="22">EVERY LAYER OR POUR</text><text class="th" x="1065" y="22">MONTHLY · END</text><rect class="ru" x="10" y="40" width="240" height="40" rx="6"/><text class="tt" x="130.0" y="64.0" text-anchor="middle">Spec rules approved</text><rect class="n" x="10" y="90" width="240" height="46" rx="6"/><text class="tt" x="130.0" y="110.0" text-anchor="middle">Reference values</text><text class="ts" x="130.0" y="126.0" text-anchor="middle">MDD per source · JMF · mix design</text><rect class="n" x="10" y="146" width="240" height="46" rx="6"/><text class="tt" x="130.0" y="166.0" text-anchor="middle">Inspection and test plan</text><text class="ts" x="130.0" y="182.0" text-anchor="middle">hold points per activity</text><path class="edge" d="M262,60 L262,169"/><path class="edge" d="M250,60 L262,60"/><path class="edge" d="M250,113 L262,113"/><path class="edge" d="M250,169 L262,169"/><path class="edge" d="M262,82 L298,82" marker-end="url(#ah)"/><rect class="src" x="300" y="60" width="150" height="44" rx="6"/><text class="tt" x="375.0" y="86.0" text-anchor="middle">Layer placed</text><rect class="n" x="480" y="60" width="160" height="44" rx="6"/><text class="tt" x="560.0" y="79.0" text-anchor="middle">Inspection requested</text><text class="ts" x="560.0" y="95.0" text-anchor="middle">by contractor</text><rect class="n" x="670" y="60" width="160" height="44" rx="6"/><text class="tt" x="750.0" y="79.0" text-anchor="middle">Sample + test</text><text class="ts" x="750.0" y="95.0" text-anchor="middle">contractor QC lab</text><rect class="hu" x="860" y="60" width="170" height="44" rx="6"/><text class="tt" x="945.0" y="79.0" text-anchor="middle">Consultant check</text><text class="ts" x="945.0" y="95.0" text-anchor="middle">witness or repeat a share</text><rect class="ru" x="860" y="150" width="170" height="44" rx="6"/><text class="tt" x="945.0" y="169.0" text-anchor="middle">Compare to rule</text><text class="ts" x="945.0" y="185.0" text-anchor="middle">deviation computed</text><rect class="hs" x="670" y="150" width="160" height="44" rx="6"/><text class="tt inv" x="750.0" y="169.0" text-anchor="middle">Layer approved</text><text class="ts inv" x="750.0" y="185.0" text-anchor="middle">hold point released</text><rect class="ex" x="860" y="240" width="170" height="44" rx="6"/><text class="tt" x="945.0" y="259.0" text-anchor="middle">NCR raised</text><text class="ts" x="945.0" y="275.0" text-anchor="middle">location + deviation</text><rect class="hu" x="670" y="240" width="160" height="44" rx="6"/><text class="tt" x="750.0" y="259.0" text-anchor="middle">Disposition</text><text class="ts" x="750.0" y="275.0" text-anchor="middle">engineer decides</text><path class="edge" d="M450,82 L478,82" marker-end="url(#ah)"/><path class="edge" d="M640,82 L668,82" marker-end="url(#ah)"/><path class="edge" d="M830,82 L858,82" marker-end="url(#ah)"/><path class="edge" d="M945,104 L945,148" marker-end="url(#ah)"/><path class="edge" d="M860,172 L832,172" marker-end="url(#ah)"/><text class="tl" x="846" y="164" text-anchor="middle">pass</text><path class="edge" d="M945,194 L945,238" marker-end="url(#ah)"/><text class="tl" x="953" y="220" text-anchor="start">fail</text><path class="edge" d="M860,262 L832,262" marker-end="url(#ah)"/><path class="edge" d="M670,172 L375,172 L375,106" marker-end="url(#ah)"/><text class="tl" x="392" y="166" text-anchor="start">next layer</text><path class="edge" d="M670,262 L350,262 L350,106" marker-end="url(#ah)"/><text class="tl" x="392" y="256" text-anchor="start">rework, then retest</text><path class="edge" d="M750,240 L750,196" marker-end="url(#ah)"/><text class="tl" x="758" y="224" text-anchor="start">accept + reason</text><path class="edge" d="M1030,172 L1045,172"/><path class="edge" d="M1045,82 L1045,262"/><path class="edge" d="M1045,82 L1063,82" marker-end="url(#ah)"/><path class="edge" d="M1045,172 L1063,172" marker-end="url(#ah)"/><path class="edge" d="M1045,262 L1063,262" marker-end="url(#ah)"/><rect class="n" x="1065" y="60" width="150" height="44" rx="6"/><text class="tt" x="1140.0" y="86.0" text-anchor="middle">Monthly QC report</text><rect class="n" x="1065" y="150" width="150" height="44" rx="6"/><text class="tt" x="1140.0" y="169.0" text-anchor="middle">IPC pays</text><text class="ts" x="1140.0" y="185.0" text-anchor="middle">approved lots only</text><rect class="n" x="1065" y="240" width="150" height="44" rx="6"/><text class="tt" x="1140.0" y="259.0" text-anchor="middle">Quality dossier</text><text class="ts" x="1140.0" y="275.0" text-anchor="middle">at completion</text></svg></div>
+    <figcaption>Each layer is a hold point. The next layer can't be placed, or paid for, until the tool shows the lot passing and the engineer releases it. A failure raises a non-conformance report (NCR), and only the engineer decides what happens next.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>When</th><th>What enters</th><th>Who enters it</th></tr></thead>
+    <tbody>
+      <tr><td>Contract start</td><td>Specification rules, approved material sources, the inspection and test plan with hold points</td><td>Consultant's materials engineer</td></tr>
+      <tr><td>Before each material is used</td><td>MDD and optimum moisture per source, asphalt job mix formula, concrete mix design</td><td>Lab results, then approved by the engineer</td></tr>
+      <tr><td>Each delivery</td><td>Waybill, supplier and GSA certificates, heat numbers for steel</td><td>Contractor, by photo or WhatsApp</td></tr>
+      <tr><td>Each layer or pour, same day</td><td>Inspection request, sample records with GPS and chainage, field density, levels, photos</td><td>Contractor QC staff and consultant inspectors</td></tr>
+      <tr><td>1 to 28 days later</td><td>Lab results, including concrete cubes at 7 and 28 days</td><td>Lab, from its own account</td></tr>
+      <tr><td>Monthly</td><td>Payment claim with measured quantities</td><td>Contractor</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>5. How deviation is measured</h3>
+  <ul class="prose bul">
+    <li><b>Against a minimum or maximum:</b> deviation is the result minus the limit. A density of 96.8% against 97% is −0.2 points and fails.</li>
+    <li><b>Lot average:</b> the mean of all tests in the lot, compared with the average limit.</li>
+    <li><b>Tolerance band:</b> measured minus design. A base 22 mm thinner than design is inside +0 / −25 mm.</li>
+    <li><b>Envelope:</b> each sieve is checked against its band, and the report names which sieves fall outside and by how much.</li>
+    <li><b>Statistical:</b> concrete uses the mean of a group of cubes and the lowest single cube, compared with the class strength.</li>
+    <li><b>Test frequency:</b> tests required minus tests done for the lot's area or volume. A shortfall is a failure even if every test passed.</li>
+    <li><b>Near-limit flag:</b> results within a set margin of the limit are marked marginal. A run of results that all sit just above the limit is flagged for a witnessed retest.</li>
+  </ul>
+  <p class="prose"><b>Worked example.</b> A lot of base course between chainage 12+000 and 12+500 is 7 m wide, so 3,500 m², which needs 10 density tests. The contractor submits 8.</p>
+  <div class="tbl"><table class="num">
+    <thead><tr><th>Test</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>Mean</th></tr></thead>
+    <tbody><tr><td>% of MDD</td><td>98.4</td><td>97.6</td><td>99.1</td><td class="bad">96.8</td><td>98.0</td><td>97.9</td><td>98.6</td><td>97.2</td><td class="bad">97.95</td></tr></tbody>
+  </table></div>
+  <ul class="prose bul">
+    <li><b>Single-test check fails.</b> Test 4 is 0.2 points below the 97% minimum, and the NCR records its chainage.</li>
+    <li><b>Lot-average check fails.</b> The mean of 97.95% is 0.05 points below the 98% average limit.</li>
+    <li><b>Frequency check fails.</b> Two tests are missing.</li>
+    <li><b>Outcome:</b> the lot is not approved and does not enter this month's IPC. The engineer chooses recompaction around test 4 plus three more tests, or another disposition with a written reason.</li>
+  </ul>
+
+  <h3>6. Who tests, and why it matters</h3>
+  <ul class="prose bul">
+    <li><b>Contractor quality control:</b> the contractor's own lab tests every lot. These results show the contractor's control of the work.</li>
+    <li><b>Consultant verification:</b> the consultant witnesses or repeats a share of tests. The tool tracks that share per material and flags any material that falls below the plan.</li>
+    <li><b>Independent checks:</b> the GHA Central Materials Laboratory or the auditors test on request. Large gaps between contractor and independent results are flagged.</li>
+  </ul>
+
+  <h3>7. Reports the tool produces</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Report</th><th>When</th><th>Contents</th><th>Goes to</th></tr></thead>
+    <tbody>
+      <tr><td>Test result sheet</td><td>Each sample</td><td>Result, limit, deviation, pass, marginal or fail, rule version, photos, GPS</td><td>Contractor, consultant</td></tr>
+      <tr><td>Layer approval record</td><td>Each hold point</td><td>Lot, chainages, all tests, frequency check, engineer's release</td><td>Contractor, project file</td></tr>
+      <tr><td>NCR</td><td>Each failure</td><td>Location, deviation, cause, disposition, retest results, closing date</td><td>Contractor, Resident Engineer</td></tr>
+      <tr><td>Monthly quality report</td><td>Monthly, with the IPC</td><td>Tests done against tests required, pass rate, mean and spread per material, open NCRs, lots held back</td><td>Client, World Bank</td></tr>
+      <tr><td>Quality dossier</td><td>Completion</td><td>Every test, certificate, NCR and approval by chainage and structure, with the ledger</td><td>Client, auditors</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="materials">
+  <p class="eyebrow">Materials chain</p>
+  <h2>From requirement to purchase, store, use and claim</h2>
+  <p class="prose">Quality tests sample the finished work. They do not show whether the right material was bought, stored properly and used in the right amount. This module follows each material from the specification to the payment claim. It catches wrong grades, unapproved substitutes, cement that is short in the concrete, and payment for materials on site that are not actually in the store.</p>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1185 230" role="img" aria-label="Material chain from requirement to purchase order, delivery, store or stockpile, issue to work, and installed and claimed. Five rule checks sit between the stages: order matches spec, delivery matches order, store balance holds, use matches design, and the claim is supported."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="src" x="10" y="35" width="160" height="50" rx="6"/><text class="tt" x="90.0" y="57.0" text-anchor="middle">Requirement</text><text class="ts" x="90.0" y="73.0" text-anchor="middle">spec · BOQ · approved source</text><path class="edge" d="M170,60 L208,60" marker-end="url(#ah)"/><rect class="n" x="210" y="35" width="160" height="50" rx="6"/><text class="tt" x="290.0" y="57.0" text-anchor="middle">Purchase order</text><text class="ts" x="290.0" y="73.0" text-anchor="middle">contractor</text><path class="edge" d="M370,60 L408,60" marker-end="url(#ah)"/><rect class="n" x="410" y="35" width="160" height="50" rx="6"/><text class="tt" x="490.0" y="57.0" text-anchor="middle">Delivery</text><text class="ts" x="490.0" y="73.0" text-anchor="middle">waybill · cert · weighbridge</text><path class="edge" d="M570,60 L608,60" marker-end="url(#ah)"/><rect class="n" x="610" y="35" width="160" height="50" rx="6"/><text class="tt" x="690.0" y="57.0" text-anchor="middle">Store or stockpile</text><text class="ts" x="690.0" y="73.0" text-anchor="middle">stock card · heat no. · age</text><path class="edge" d="M770,60 L808,60" marker-end="url(#ah)"/><rect class="n" x="810" y="35" width="160" height="50" rx="6"/><text class="tt" x="890.0" y="57.0" text-anchor="middle">Issue to work</text><text class="ts" x="890.0" y="73.0" text-anchor="middle">to BOQ item + chainage</text><path class="edge" d="M970,60 L1008,60" marker-end="url(#ah)"/><rect class="n" x="1010" y="35" width="160" height="50" rx="6"/><text class="tt" x="1090.0" y="57.0" text-anchor="middle">Installed + claimed</text><text class="ts" x="1090.0" y="73.0" text-anchor="middle">QC lot · IPC line</text><path class="edge dash" d="M190,62 L190,118"/><rect class="ru" x="98" y="120" width="184" height="96" rx="6"/><text class="tt" x="190" y="142" text-anchor="middle">M1 · Order matches spec</text><text class="ts" x="190" y="164" text-anchor="middle">grade + standard as spec</text><text class="ts" x="190" y="181" text-anchor="middle">approved supplier or source</text><text class="ts" x="190" y="198" text-anchor="middle">quantity vs BOQ need</text><path class="edge dash" d="M390,62 L390,118"/><rect class="ru" x="298" y="120" width="184" height="96" rx="6"/><text class="tt" x="390" y="142" text-anchor="middle">M2 · Delivery matches order</text><text class="ts" x="390" y="164" text-anchor="middle">item, grade, quantity</text><text class="ts" x="390" y="181" text-anchor="middle">cert heat no. = bar tags</text><text class="ts" x="390" y="198" text-anchor="middle">GSA marking on rebar</text><path class="edge dash" d="M590,62 L590,118"/><rect class="ru" x="498" y="120" width="184" height="96" rx="6"/><text class="tt" x="590" y="142" text-anchor="middle">M3 · Store balance holds</text><text class="ts" x="590" y="164" text-anchor="middle">received − issued = on hand</text><text class="ts" x="590" y="181" text-anchor="middle">cement age, storage photo</text><text class="ts" x="590" y="198" text-anchor="middle">monthly count vs stock card</text><path class="edge dash" d="M790,62 L790,118"/><rect class="ru" x="698" y="120" width="184" height="96" rx="6"/><text class="tt" x="790" y="142" text-anchor="middle">M4 · Use matches design</text><text class="ts" x="790" y="164" text-anchor="middle">right product to right item</text><text class="ts" x="790" y="181" text-anchor="middle">cement per m³ vs mix design</text><text class="ts" x="790" y="198" text-anchor="middle">steel vs bar bending schedule</text><path class="edge dash" d="M990,62 L990,118"/><rect class="ru" x="898" y="120" width="184" height="96" rx="6"/><text class="tt" x="990" y="142" text-anchor="middle">M5 · Claim is supported</text><text class="ts" x="990" y="164" text-anchor="middle">IPC qty ≤ passed QC lots</text><text class="ts" x="990" y="181" text-anchor="middle">materials on site = store</text><text class="ts" x="990" y="198" text-anchor="middle">no chainage claimed twice</text></svg></div>
+    <figcaption>Each check is a deterministic rule on matched records. AI reads the paper and photos and proposes the links between them. A failed check becomes an exception for a person to review, exactly as in the quality loop.</figcaption>
+  </figure>
+
+  <h3>Where each record comes from</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Record</th><th>Who keeps it on a Ghana site</th><th>Usual form today</th><th>How it enters the tool</th></tr></thead>
+    <tbody>
+      <tr><td>Material requirements</td><td>Specification, BOQ, approved sources, mix designs, bar bending schedules</td><td>PDF, Excel</td><td>Setup, approved by the engineer</td></tr>
+      <tr><td>Purchase orders and supplier invoices</td><td>Contractor's procurement or accounts office</td><td>Excel, accounting software, paper</td><td>Upload or export. Prices stay hidden from the consultant</td></tr>
+      <tr><td>Supplier and GSA certificates</td><td>Supplier, passed on by the contractor</td><td>Paper or PDF</td><td>Photo or WhatsApp at delivery</td></tr>
+      <tr><td>Waybills and weighbridge tickets</td><td>Quarry, supplier or haulier</td><td>Paper</td><td>Photo at the site gate</td></tr>
+      <tr><td>Goods received notes and stock cards</td><td>Contractor's storekeeper</td><td>Paper ledger books</td><td>A simple store app with QR labels, or a photo of the page</td></tr>
+      <tr><td>Issue vouchers</td><td>Storekeeper and foreman</td><td>Paper</td><td>Store app, which records each issue against a BOQ item and chainage</td></tr>
+      <tr><td>Concrete batching and asphalt plant printouts</td><td>Plant operator</td><td>Printed tickets, plant computer</td><td>Photo or export. These are the best record of what actually went into each load</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Records are matched on shared keys: BOQ item, material, supplier, heat or batch number, waybill number, date and chainage. Exact key matches link automatically. Anything uncertain goes to review.</p>
+
+  <h3>Checking use against design</h3>
+  <p class="prose">The expected use is the installed quantity times the design rate. The design rate comes from the mix design, the bar bending schedule or the job mix formula. The variance is what the store issued minus the expected use.</p>
+  <ul class="prose bul">
+    <li><b>Issued well above expected</b> points to waste or loss. Contractors care most about this.</li>
+    <li><b>Issued below expected</b> points to under-dosing, which is a quality risk. It triggers extra testing on the affected pours.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>Worked example: culvert concrete, one week</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Concrete placed</td><td>120 m³</td></tr>
+      <tr><td>Cement in approved mix design</td><td>350 kg per m³</td></tr>
+      <tr><td>Expected cement use</td><td>42,000 kg, which is 840 bags of 50 kg</td></tr>
+      <tr><td>Bags issued from the store</td><td>760</td></tr>
+      <tr><td>Variance</td><td class="bad">−80 bags, or −4,000 kg, or −9.5%</td></tr>
+      <tr><td>What the tool does</td><td>Flags possible under-cementing. Asks for cube results on those pours and plant tickets, and holds the culvert lines pending review.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">The allowed variance before a flag is set per material by the engineer, for example a wastage allowance on steel. The example values are illustrative, not taken from a real project.</p>
+
+  <h3>Who uses this part</h3>
+  <ul class="prose bul">
+    <li><b>The contractor's storekeeper and quality manager</b> become daily users. Stock loss control is something a contractor may pay for on its own. This is a hypothesis to test in interviews.</li>
+    <li><b>The consultant</b> sees grades, quantities, certificates and match results. Purchase prices stay in the contractor's view only, because contractors will not share them.</li>
+  </ul>
+
+  <h3>Ideas taken from AI quality management, and ideas left out</h3>
+  <div class="cols">
+    <div>
+      <p class="label">Included</p>
+      <ul class="bul">
+        <li>Corrective and preventive action linked to each NCR, with root causes tracked across NCRs</li>
+        <li>Supplier scorecards built from rejected deliveries, late certificates and failed tests</li>
+        <li>Early warnings from near-limit trends and consumption variance</li>
+        <li>Audit-ready reports generated from the ledger</li>
+      </ul>
+    </div>
+    <div>
+      <p class="label">Left out, and why</p>
+      <ul class="bul">
+        <li><b>Scraping standards from the web:</b> standards come only from licensed copies, through the licence-gated <a href="#standards">standards library</a>.</li>
+        <li><b>Zero data entry:</b> Ghana sites run on paper, so fast photo and WhatsApp capture is the real job.</li>
+        <li><b>A CAD design copilot:</b> roads are designed before the contract, by others. Our users build and supervise.</li>
+        <li><b>AI that stops payments by itself:</b> people sign. The tool holds a line for review and never certifies or blocks one alone.</li>
+        <li><b>Checking batch numbers against manufacturer databases:</b> few exist for Ghana supply. The tool matches the mill certificate's heat number to a photo of the bar tag instead.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="standards">
+  <p class="eyebrow">Standards library · in the MVP</p>
+  <h2>Using ISO, ASTM, BSI and GSA standards under licence</h2>
+  <p class="prose">The MVP includes a full standards library. AI reads a standard, finds the acceptance limits, and drafts rule cards that cite the exact clause. Every standard passes a licence gate first, so a publisher's content is processed only for the uses its licence allows. Licences will be negotiated once the proposal is accepted. Until a licence is signed, that publisher's standards use manual limit entry, and the rest of the product works the same.</p>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1185 228" role="img" aria-label="Standards library: a standard from a licensed copy passes a licence gate. If AI use is licensed it is indexed per customer, AI extracts limits with clause references, an engineer approves them and they enter the rule library, with every extraction logged for publisher reporting. If not licensed, the engineer enters numeric limits and clause numbers by hand."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="src" x="10" y="80" width="170" height="50" rx="6"/><text class="tt" x="95.0" y="102.0" text-anchor="middle">Standard document</text><text class="ts" x="95.0" y="118.0" text-anchor="middle">from a licensed copy</text><rect class="ru" x="215" y="80" width="170" height="50" rx="6"/><text class="tt" x="300.0" y="102.0" text-anchor="middle">Licence gate</text><text class="ts" x="300.0" y="118.0" text-anchor="middle">publisher · holder · uses</text><rect class="n" x="420" y="30" width="170" height="50" rx="6"/><text class="tt" x="505.0" y="52.0" text-anchor="middle">Clause index</text><text class="ts" x="505.0" y="68.0" text-anchor="middle">encrypted · per customer</text><rect class="ai" x="625" y="30" width="170" height="50" rx="6"/><text class="tt" x="710.0" y="52.0" text-anchor="middle">AI extracts limits</text><text class="ts" x="710.0" y="68.0" text-anchor="middle">with clause reference</text><rect class="hu" x="830" y="30" width="150" height="50" rx="6"/><text class="tt" x="905.0" y="59.0" text-anchor="middle">Engineer approves</text><rect class="ru" x="1015" y="80" width="160" height="50" rx="6"/><text class="tt" x="1095.0" y="102.0" text-anchor="middle">Rule library</text><text class="ts" x="1095.0" y="118.0" text-anchor="middle">versioned per contract</text><rect class="hu" x="420" y="150" width="170" height="44" rx="6"/><text class="tt" x="505.0" y="169.0" text-anchor="middle">Manual limit entry</text><text class="ts" x="505.0" y="185.0" text-anchor="middle">numbers + clause no. only</text><rect class="tr" x="830" y="150" width="150" height="44" rx="6"/><text class="tt" x="905.0" y="169.0" text-anchor="middle">Usage log</text><text class="ts" x="905.0" y="185.0" text-anchor="middle">for publisher reporting</text><path class="edge" d="M180,105 L213,105" marker-end="url(#ah)"/><path class="edge" d="M385,95 L400,95 L400,55 L418,55" marker-end="url(#ah)"/><text class="tl" x="306" y="24" text-anchor="start">AI use licensed</text><path class="edge" d="M385,115 L400,115 L400,172 L418,172" marker-end="url(#ah)"/><text class="tl" x="306" y="145" text-anchor="start">not licensed</text><path class="edge" d="M590,55 L623,55" marker-end="url(#ah)"/><path class="edge" d="M795,55 L828,55" marker-end="url(#ah)"/><path class="edge" d="M980,55 L1095,55 L1095,78" marker-end="url(#ah)"/><path class="edge" d="M505,194 L505,214 L1095,214 L1095,132" marker-end="url(#ah)"/><text class="tl" x="620" y="208" text-anchor="start">approved limits</text><path class="edge dash" d="M710,80 L710,120 L905,120 L905,148" marker-end="url(#ah)"/><text class="tl" x="718" y="114" text-anchor="start">each extraction</text></svg></div>
+    <figcaption>The licence gate is a record per publisher. It lists who holds the licence, which uses it permits, and when it expires. When a licence is signed, flipping its record switches that publisher's standards to AI extraction without changing the software.</figcaption>
+  </figure>
+
+  <h3>Current position of each publisher</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Publisher</th><th>AI use today</th><th>Route to a licence</th><th>MVP behaviour until signed</th></tr></thead>
+    <tbody>
+      <tr><td>Ghana Standards Authority, such as GS 788-2 for rebar</td><td><span class="tag ver">verify</span> Terms for AI use not found</td><td>Negotiate directly. GSA is also Ghana's ISO member body and is pushing rebar compliance, so it is a likely partner</td><td>Manual limit entry</td></tr>
+      <tr><td>ISO</td><td>Banned unless a separate licence is granted by ISO, a member body or a distributor (<a href="https://www.iso.org/terms-conditions-licence-agreement.html">ISO licence terms</a>)</td><td>Through GSA or an authorised distributor</td><td>Manual limit entry</td></tr>
+      <tr><td>ASTM</td><td>Banned, including for paying licensees, unless ASTM's President gives written permission (<a href="https://store.astm.org/media/wysiwyg/ASTM_AI_Policy.pdf">ASTM AI policy</a>)</td><td>Written request to ASTM's licensing team</td><td>Manual limit entry. ASTM text is never uploaded</td></tr>
+      <tr><td>BSI and BS EN standards, plus resellers such as Accuris and Techstreet</td><td><span class="tag ver">verify</span> Terms not found</td><td>Ask BSI licensing and each reseller</td><td>Manual limit entry</td></tr>
+      <tr><td>Ghana road specification, Road Note 31, contract documents</td><td>Government and contract documents, used with the client's permission <span class="tag ver">verify</span></td><td>Client permission in the pilot agreement</td><td>AI extraction on from day one</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What the MVP builds</h3>
+  <ul class="prose bul">
+    <li><b>Licence register:</b> one record per publisher, listing the licence holder, permitted uses (view, AI extraction, storing excerpts), the customers covered and the expiry date.</li>
+    <li><b>Licence gate:</b> checked on every upload and every extraction. Content without an AI licence is refused for AI processing and routed to manual entry.</li>
+    <li><b>Clause index:</b> encrypted, separated per customer, and never used to train any model. Excerpts shown to users are limited to the clause being cited.</li>
+    <li><b>Limit extraction:</b> AI drafts the limit, units, test method and clause reference. An engineer approves each one before it enters the rule library.</li>
+    <li><b>Usage log:</b> records which standard, clause and customer each extraction served. It feeds the usage reports publishers usually require.</li>
+  </ul>
+
+  <h3>What to ask for when negotiating</h3>
+  <ol class="prose steps">
+    <li>AI-assisted extraction of requirements from standards the customer has licensed, for that customer's named users only.</li>
+    <li>No model training, no sharing between customers, and content deleted when the licence ends.</li>
+    <li>Outputs that show the clause number and a short excerpt, linking back to the publisher's own copy.</li>
+    <li>Usage reports each quarter, with pricing either as an uplift per user or per project, or as a revenue share.</li>
+  </ol>
+  <p class="prose"><b>Suggested order:</b> GSA first, because it has the strongest local interest and the fastest path. Then ISO through GSA. Then BSI, because Ghana specifications reference many BS and BS EN test methods. ASTM comes last, and only where a contract cites ASTM methods.</p>
+</section>
+
+<section>
+  <h2>Keeping a test result traceable</h2>
+  <figure>
+    <div class="scroll"><svg class="dg" viewBox="0 0 1040 140" role="img" aria-label="A sample is recorded with photo, GPS, time and a printed tag; the lab scans the tag and enters the result from its own account; the result is hashed into the ledger and then checked against the approved limit."><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="hu" x="10" y="20" width="170" height="100" rx="6"/><text class="tt" x="95" y="46" text-anchor="middle">Sample taken</text><text class="ts" x="95" y="68" text-anchor="middle">photo + GPS + time</text><text class="ts" x="95" y="85" text-anchor="middle">chainage, layer</text><text class="ts" x="95" y="102" text-anchor="middle">printed tag ID</text><path class="edge" d="M180,70 L213,70" marker-end="url(#ah)"/><rect class="n" x="215" y="20" width="170" height="100" rx="6"/><text class="tt" x="300" y="46" text-anchor="middle">Tag scanned at lab</text><text class="ts" x="300" y="68" text-anchor="middle">lab account, time</text><text class="ts" x="300" y="85" text-anchor="middle">gap &gt; 48 h flagged</text><path class="edge" d="M385,70 L418,70" marker-end="url(#ah)"/><rect class="n" x="420" y="20" width="170" height="100" rx="6"/><text class="tt" x="505" y="46" text-anchor="middle">Result entered</text><text class="ts" x="505" y="68" text-anchor="middle">by the lab&#x27;s own login</text><text class="ts" x="505" y="85" text-anchor="middle">or signed PDF upload</text><path class="edge" d="M590,70 L623,70" marker-end="url(#ah)"/><rect class="tr" x="625" y="20" width="170" height="100" rx="6"/><text class="tt" x="710" y="46" text-anchor="middle">Sealed</text><text class="ts" x="710" y="68" text-anchor="middle">hash written to ledger</text><text class="ts" x="710" y="85" text-anchor="middle">edits create versions</text><path class="edge" d="M795,70 L828,70" marker-end="url(#ah)"/><rect class="ru" x="830" y="20" width="170" height="100" rx="6"/><text class="tt" x="915" y="46" text-anchor="middle">Checked</text><text class="ts" x="915" y="68" text-anchor="middle">against approved limit</text><text class="ts" x="915" y="85" text-anchor="middle">for that BOQ item</text></svg></div>
+    <figcaption>This answers the 2019 Auditor-General concern about possible tampering of laboratory results. It cannot prove that a faked sample came from the road. The answer to that is random witnessed sampling and flagging results that look too perfect.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Data sources</h2>
+  <p class="prose">Two kinds of data go in. Requirements say what must be true. Evidence shows what happened on site. Nothing on this list is scraped. The client and the contractor supply it, or the field team captures it.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Data</th><th>Who owns it</th><th>Access</th><th>Format and timing</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td>Contract conditions, General and Particular</td><td>Employer (GHA or the Ministry of Roads and Highways), held by the consultant</td><td><span class="tag">client supplies</span> FIDIC text is licensed, so use the project's own copy</td><td>PDF, at contract start</td><td>Payment, approval and document-priority rules</td></tr>
+      <tr><td>Bill of quantities, variations, engineer's instructions</td><td>Employer and consultant</td><td><span class="tag">client supplies</span></td><td>Excel or PDF, at start and at each variation</td><td>The list of payable items and limits on quantity</td></tr>
+      <tr><td>MRH Standard Specification for Road and Bridge Works</td><td>Ministry of Roads and Highways</td><td><span class="tag ver">verify</span> availability and reuse terms not confirmed</td><td>PDF</td><td>Material and test limits per item, test frequencies</td></tr>
+      <tr><td>Ghana Road Design Manual 2023, Low Volume Roads Manual 2019, Road Note 31</td><td>Ministry of Roads and Highways; TRL for Road Note 31</td><td><span class="tag ver">verify</span></td><td>PDF</td><td>Pavement layer and material requirements</td></tr>
+      <tr><td>Ghana Standards Authority standards, such as GS 788 for rebar</td><td>Ghana Standards Authority</td><td><span class="tag paid">licence pending</span> AI extraction once GSA licence is signed</td><td>Purchased PDF</td><td>Product acceptance limits and marking rules</td></tr>
+      <tr><td>Test methods referenced by the spec (BS EN, AASHTO, ASTM)</td><td>Standards bodies</td><td><span class="tag paid">licence pending</span> ISO and ASTM ban AI use without a licence</td><td>Through the standards library</td><td>Limits extracted once licensed, cited by number until then</td></tr>
+      <tr><td>Approved material sources, mix designs, substitutions</td><td>Resident Engineer</td><td><span class="tag">consultant</span></td><td>Approval letters and forms, as issued</td><td>Which product is allowed for which item</td></tr>
+      <tr><td>Field records: samples, inspections, levels, thickness, photos</td><td>Consultant</td><td><span class="tag">captured in app</span></td><td>Structured records, same day</td><td>Proof of work, location and sampling</td></tr>
+      <tr><td>Lab test reports</td><td>GHA Central Materials Laboratory, private labs, contractor site labs</td><td><span class="tag">lab or contractor</span></td><td>PDF or direct entry, days after sampling</td><td>Quality evidence per sample</td></tr>
+      <tr><td>Supplier certificates, GSA certificates, waybills</td><td>Suppliers, via the contractor</td><td><span class="tag">contractor</span></td><td>Photo or PDF, at delivery</td><td>Material origin and grade</td></tr>
+      <tr><td>Contractor's interim payment application and measurement sheets</td><td>Contractor</td><td><span class="tag">contractor</span></td><td>Excel or PDF, monthly</td><td>What is being claimed</td></tr>
+      <tr><td>Past IPCs, rejected items, audit queries</td><td>Consultant and client. Auditor-General reports are public</td><td><span class="tag pub">partly public</span></td><td>PDF</td><td>Ground truth to measure the tool's accuracy</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Questions answered</h2>
+  <div class="qa">
+    <article>
+      <h3>What does AI do, and what never uses AI?</h3>
+      <ul>
+        <li><b>AI reads and proposes.</b> It extracts fields from scans and photos, drafts rules from specification text, and suggests which BOQ item and chainage a document belongs to.</li>
+        <li><b>Rules decide pass or fail.</b> Every check is a rule an engineer approved, so the same inputs always give the same result.</li>
+        <li><b>People accept.</b> Inspectors and quantity surveyors clear exceptions, and the Resident Engineer signs. The tool never certifies anything.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>How does it work with poor signal?</h3>
+      <ul>
+        <li>The Android app saves every record on the phone first, with time and GPS stamped on the device.</li>
+        <li>A sync queue uploads records when signal returns. Photos are compressed before upload.</li>
+        <li>WhatsApp is the fallback for contractors and labs who will not install another app.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>How do we stop test results being changed?</h3>
+      <ul>
+        <li>Every file is hashed when it arrives and stored write-once. An edit creates a new version, and the old one stays.</li>
+        <li>Labs enter results from their own accounts, against a tag ID created at sampling time.</li>
+        <li>Long gaps between sampling and testing are flagged, and so are results that sit suspiciously close to the limit every time.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>What happens when documents disagree?</h3>
+      <ul>
+        <li><b>Conflicting revisions:</b> every rule carries its source, revision and date. The contract's priority-of-documents clause decides between them. If no approved precedence rule covers the case, the tool shows the conflict and does not pick.</li>
+        <li><b>Substitutions:</b> a different product passes only with a linked approval from the engineer.</li>
+        <li><b>Missing evidence:</b> the item shows as missing and is held back. The tool never infers evidence.</li>
+        <li><b>Ambiguous matches:</b> anything below the confidence threshold goes to review, with both documents shown side by side.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>Who sees what, and where is data stored?</h3>
+      <ul>
+        <li>Each contract is its own workspace. Contractors see only their own submissions. The client and the World Bank get read-only views.</li>
+        <li>Ghana's Data Protection Act, 2012 (Act 843) applies. Registration with the Data Protection Commission needs to be confirmed. <span class="tag ver">verify</span></li>
+        <li>Ask the client whether government contract data must stay in Ghana before choosing a hosting region. <span class="tag ver">verify</span></li>
+      </ul>
+    </article>
+    <article>
+      <h3>What does it connect to?</h3>
+      <ul>
+        <li><b>For the pilot, nothing.</b> Excel and PDF go in, and the IPC evidence pack comes out in the consultant's existing format.</li>
+        <li><b>Later:</b> lab systems, World Bank reporting templates, and read-only payment dates from government finance systems to measure time to payment.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>How do we prove it works?</h3>
+      <ul>
+        <li>Replay a completed contract month by month. Compare the tool's flags with items the Resident Engineer, the client, the World Bank or auditors later queried or rejected.</li>
+        <li>Track four numbers: share of known problems caught, false flags per IPC, review minutes per IPC, and days from claim to certificate.</li>
+      </ul>
+    </article>
+    <article>
+      <h3>What is it built with?</h3>
+      <ul>
+        <li>An offline-first Android app, plus intake through the WhatsApp Business Platform and email.</li>
+        <li>Postgres with PostGIS for chainage and GPS, and object storage with write-once locking for originals.</li>
+        <li>A job queue runs OCR and extraction with Claude models using structured output. Rules are versioned files that are reviewed like code.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section>
+  <h2>Build order</h2>
+  <div class="cols">
+    <div>
+      <p class="label">Pilot on one completed contract</p>
+      <ul>
+        <li>Setup portal for the BOQ and specification limits, with AI-drafted rules approved by an engineer</li>
+        <li>Upload and WhatsApp intake</li>
+        <li>Extraction of lab reports and supplier certificates</li>
+        <li>Matcher and rules for six material checks: asphalt, base gradation, compaction, concrete strength, rebar and cement</li>
+        <li>Review queue and IPC evidence pack export</li>
+        <li>File vault and audit ledger</li>
+        <li>Standards library with licence gate, running AI extraction on the road specification and contract documents, and manual entry for standards awaiting a licence</li>
+      </ul>
+    </div>
+    <div>
+      <p class="label">After the pilot proves recall</p>
+      <ul>
+        <li>Offline field app with sample chain of custody</li>
+        <li>Store app and purchase matching for contractors, covering checks M1 to M5</li>
+        <li>Lab portal for direct result entry</li>
+        <li>Supplier certificate exchange, where suppliers upload once and reuse across projects</li>
+        <li>Client and World Bank dashboards</li>
+        <li>Buildings edition for lenders that release loans in stages</li>
+        <li>Rule libraries for Nigeria, Côte d'Ivoire and Kenya</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="open">
+  <h2>Open questions for the first consultant</h2>
+  <ol class="prose">
+    <li>Is the MRH Standard Specification available in digital form, and may we encode its limits?</li>
+    <li>What format do IPC packs take when they go to GHA and the World Bank?</li>
+    <li>Which labs test for the World Bank contracts, and would they enter results directly?</li>
+    <li>Must project data on government contracts stay in Ghana?</li>
+    <li>Who must approve the tool's use: the consultant alone, or the client too?</li>
+  </ol>
+</section>
+
+<footer>Items tagged "verify" are unconfirmed and should be checked with the client or regulator before you rely on them.</footer>
+</div>

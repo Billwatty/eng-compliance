@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ doc.filename }}</h1>
+<p>{{ doc.kind }}{% if doc.publisher %} · {{ doc.publisher }}{% endif %} · received {{ doc.received_at }} by {{ doc.source }} · <span class="pill {{ doc.status }}">{{ doc.status }}</span></p>
+<p class="mono muted">SHA-256 {{ doc.sha256 }}</p>
+<p><a href="/documents/{{ doc.id }}/file" target="_blank" rel="noopener">Open the original</a></p>
+
+{% if doc.status == 'received' and doc.kind in ('lab_report', 'supplier_cert') %}
+<section class="card"><h2>Read with AI</h2>
+  <p class="muted">Claude reads the document and proposes values. Nothing is saved as a result until you confirm it below.</p>
+  <form method="post" action="/documents/{{ doc.id }}/extract"><button type="submit">Read document</button></form>
+</section>
+{% endif %}
+
+{% if doc.kind == 'lab_report' and doc.status != 'confirmed' %}
+<section class="card"><h2>Confirm results</h2>
+  {% set ex = doc.extracted or {} %}
+  {% if doc.match %}<p>Match: {% if doc.match.lot_id %}lot {{ doc.match.lot_id }}{% else %}none{% endif %} · confidence {{ doc.match.confidence }} · {{ doc.match.reason }}</p>{% endif %}
+  {% if ex.unreadable_parts %}<p class="bad">Could not read: {{ ex.unreadable_parts|join('; ') }}</p>{% endif %}
+  <form method="post" action="/documents/{{ doc.id }}/confirm">
+    <div class="stack" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+      <label>Lot<select name="lot_id" required><option value="">Choose…</option>{% for l in lots %}<option value="{{ l.id }}" {% if doc.match and doc.match.lot_id == l.id %}selected{% endif %}>Lot {{ l.id }} {{ l.boq_code }} {{ l.layer }} {{ l.ch_from|ch }}–{{ l.ch_to|ch }} ({{ l.status }})</option>{% endfor %}</select></label>
+      <label>Tested on<input type="date" name="tested_on" value="{{ ex.tested_on or today }}"></label>
+      <label>Lab<input name="lab" value="{{ ex.lab_name or '' }}"></label>
+      <label>Performed by<select name="performed_by"><option value="contractor_qc">Contractor QC</option><option value="consultant">Consultant</option><option value="independent">Independent lab</option></select></label>
+    </div>
+    <div class="tbl"><table><thead><tr><th>Keep</th><th>Parameter</th><th>Value</th><th>Unit</th><th>Sample tag</th><th>Chainage</th><th>Set</th></tr></thead><tbody>
+    {% set results = ex.results or [] %}
+    {% for r in results %}<tr><td><input type="checkbox" name="keep_{{ loop.index0 }}" checked aria-label="Keep row"></td>
+      <td><input name="param_{{ loop.index0 }}" value="{{ r.parameter }}" aria-label="Parameter"></td><td><input name="value_{{ loop.index0 }}" value="{{ r.value }}" size="8" aria-label="Value"></td>
+      <td><input name="unit_{{ loop.index0 }}" value="{{ r.unit }}" size="6" aria-label="Unit"></td><td><input name="tag_{{ loop.index0 }}" value="{{ r.sample_tag or '' }}" size="10" aria-label="Tag"></td>
+      <td><input name="ch_{{ loop.index0 }}" value="{{ r.chainage_m if r.chainage_m is not none else '' }}" size="8" aria-label="Chainage"></td><td><input name="group_{{ loop.index0 }}" size="6" aria-label="Set"></td></tr>{% endfor %}
+    {% for i in range(results|length, results|length + 3) %}<tr><td><input type="checkbox" name="keep_{{ i }}" aria-label="Keep row"></td><td><input name="param_{{ i }}" aria-label="Parameter"></td><td><input name="value_{{ i }}" size="8" aria-label="Value"></td><td><input name="unit_{{ i }}" size="6" aria-label="Unit"></td><td><input name="tag_{{ i }}" size="10" aria-label="Tag"></td><td><input name="ch_{{ i }}" size="8" aria-label="Chainage"></td><td><input name="group_{{ i }}" size="6" aria-label="Set"></td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="muted">Check each value against the original before confirming. Tick the empty rows to enter values by hand.</p>
+    <button type="submit">Confirm into lot</button>
+  </form>
+</section>
+{% endif %}
+
+{% if doc.kind == 'supplier_cert' and doc.status != 'confirmed' %}
+<section class="card"><h2>Confirm certificate</h2>
+  {% set ex = doc.extracted or {} %}
+  {% if ex %}<table><tbody>{% for k in ['supplier','certificate_number','material','grade','standard','heat_or_batch','quantity','unit','issue_date','gsa_mark_mentioned'] %}<tr><th>{{ k }}</th><td class="mono">{{ ex[k] }}</td></tr>{% endfor %}</tbody></table>
+  {% if ex.properties %}<table><thead><tr><th>Property</th><th class="n">Value</th><th>Unit</th></tr></thead><tbody>{% for p in ex.properties %}<tr><td>{{ p.parameter }}</td><td class="n">{{ p.value }}</td><td>{{ p.unit }}</td></tr>{% endfor %}</tbody></table>{% endif %}{% endif %}
+  <form class="stack" method="post" action="/documents/{{ doc.id }}/confirm">
+    <label>Attach to delivery<select name="delivery_id"><option value="">None</option>{% for d in deliveries %}<option value="{{ d.id }}">{{ d.waybill_no }} {{ d.material }} {{ d.delivered_on }}</option>{% endfor %}</select></label>
+    <label>Heat or batch number<input name="heat_or_batch" value="{{ ex.heat_or_batch or '' }}"></label>
+    <label><span>GSA marking confirmed</span><input type="checkbox" name="gsa" {% if ex.gsa_mark_mentioned %}checked{% endif %}></label>
+    <button type="submit">Confirm</button>
+  </form>
+</section>
+{% endif %}
+
+{% if doc.status == 'confirmed' and doc.linked_lot_id %}<p>Results confirmed into <a href="/lots/{{ doc.linked_lot_id }}">lot {{ doc.linked_lot_id }}</a>.</p>{% endif %}
+{% if doc.kind in ('spec', 'standard') %}<p>Use this document on the <a href="/rules">rules page</a> to draft rule cards.</p>{% endif %}
+{% endblock %}

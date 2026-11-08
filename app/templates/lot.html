@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Lot {{ lot.id }}: {{ lot.boq_code }} {{ lot.layer }}</h1>
+<p>Chainage <span class="mono">{{ lot.ch_from|ch }} – {{ lot.ch_to|ch }}</span> · size {{ lot.lot_size|num }} · quantity {{ lot.quantity|num }} · placed {{ lot.placed_on }} ·
+ <span class="pill {{ lot.status }}">{{ lot.status }}</span>{% if lot.released_by %} released by {{ lot.released_by }} on {{ lot.released_at[:10] }}{% endif %}</p>
+
+<section class="card"><h2>Rules in force on {{ lot.placed_on }}</h2>
+  <table><thead><tr><th>Rule</th><th>Measures</th><th>Limit</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
+  {% for r in rules %}<tr><td class="mono">{{ r.rule_code }} v{{ r.version }}</td><td>{{ r.parameter }}</td><td class="mono">{{ r.limit_type }} {{ r.params_json }}</td><td>{% if r.frequency_qty %}1 per {{ r.frequency_qty|num }}{% endif %}</td><td>{{ r.source_publisher }} {{ r.source_ref }}</td></tr>
+  {% else %}<tr><td colspan="5" class="bad">No approved rules apply to this item on this date.</td></tr>{% endfor %}</tbody></table>
+</section>
+
+{% if ev %}
+<section class="card"><h2>Latest evaluation: <span class="pill {{ ev.result }}">{{ ev.result }}</span></h2>
+  <p class="muted">{{ ev.evaluated_at }}. Deviation is measured minus limit.</p>
+  <div class="tbl"><table><thead><tr><th>Rule</th><th>Check</th><th>Result</th><th class="n">Measured</th><th class="n">Limit</th><th class="n">Deviation</th><th>Chainage</th><th>Finding</th></tr></thead><tbody>
+  {% for f in ev.findings %}<tr><td class="mono">{{ f.rule_code }} v{{ f.version }}</td><td>{{ f.kind }}</td><td><span class="pill {{ f.result }}">{{ f.result }}</span></td>
+    <td class="n">{{ f.measured|num(3) }}</td><td class="n">{{ f.limit|num(3) }}</td><td class="n {% if f.result == 'fail' %}bad{% endif %}">{{ f.deviation|num(3) }}</td><td class="mono">{{ f.chainage|ch }}</td><td>{{ f.message }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+
+<div class="grid">
+<section class="card"><h2>Evaluate and release</h2>
+  <form method="post" action="/lots/{{ lot.id }}/evaluate"><button type="submit">Evaluate against the rules</button></form>
+  {% if lot.status in ('passed', 'marginal') %}
+  <form class="stack" method="post" action="/lots/{{ lot.id }}/release">
+    <label>Release note {% if lot.status == 'marginal' %}(required for a marginal lot){% endif %}<input name="note"></label>
+    <button type="submit">Release hold point</button>
+  </form>{% endif %}
+</section>
+<section class="card"><h2>NCRs on this lot</h2>
+  {% for n in ncrs %}<div><span class="pill {{ 'fail' if n.status == 'open' else 'closed' }}">NCR {{ n.id }} {{ n.status }}</span> {{ n.description }}
+    {% if n.status == 'open' %}<form class="inline" method="post" action="/ncrs/{{ n.id }}/close"><input type="hidden" name="next" value="/lots/{{ lot.id }}">
+      <select name="disposition" aria-label="Disposition"><option value="rework">Rework, then retest</option><option value="retest">Retest</option><option value="accept_with_reason">Accept with reason</option></select>
+      <input name="reason" placeholder="Reason (required)" aria-label="Reason" required><button type="submit">Close</button></form>
+    {% else %}<span class="muted">{{ n.disposition }}: {{ n.reason }} ({{ n.closed_by }})</span>{% endif %}</div>
+  {% else %}<p class="muted">None</p>{% endfor %}
+</section>
+</div>
+
+<section class="card"><h2>Results</h2>
+  <div class="tbl"><table><thead><tr><th>Parameter</th><th class="n">Value</th><th>Unit</th><th>Set</th><th>Chainage</th><th>Sample</th><th>Tested</th><th>By</th><th>Source</th></tr></thead><tbody>
+  {% for t in tests %}<tr><td class="mono">{{ t.parameter }}</td><td class="n">{{ t.value|num(3) }}</td><td>{{ t.unit }}</td><td>{{ t.group_ref or '' }}</td><td class="mono">{{ t.chainage|ch }}</td><td class="mono">{{ t.tag_id or '' }}</td><td>{{ t.tested_on }}</td><td>{{ t.performed_by }}</td><td>{% if t.document_id %}<a href="/documents/{{ t.document_id }}">doc {{ t.document_id }}</a>{% else %}{{ t.entered_by }}{% endif %}</td></tr>
+  {% else %}<tr><td colspan="9" class="muted">No results yet</td></tr>{% endfor %}</tbody></table></div>
+  <form class="stack" method="post" action="/lots/{{ lot.id }}/tests">
+    <label>Parameter<input name="parameter" required list="params"></label>
+    <datalist id="params">{% for r in rules %}<option value="{{ r.parameter }}">{% endfor %}</datalist>
+    <label>Value<input name="value" required></label>
+    <label>Unit<input name="unit"></label>
+    <label>Chainage<input name="chainage" placeholder="12+050"></label>
+    <label>Sample tag<input name="tag_id"></label>
+    <label>Cube set / grading ref<input name="group_ref"></label>
+    <label>Tested on<input type="date" name="tested_on" value="{{ today }}" required></label>
+    <label>Performed by<select name="performed_by"><option value="contractor_qc">Contractor QC</option><option value="consultant">Consultant</option><option value="independent">Independent lab</option></select></label>
+    <label>Lab<input name="lab"></label>
+    <button type="submit">Add result</button>
+  </form>
+</section>
+
+<section class="card"><h2>Samples</h2>
+  <table><thead><tr><th>Tag</th><th>Taken</th><th>Chainage</th><th>GPS</th><th>By</th></tr></thead><tbody>
+  {% for s in samples %}<tr><td class="mono">{{ s.tag_id }}</td><td>{{ s.taken_at }}</td><td class="mono">{{ s.chainage|ch }}</td><td class="mono">{{ s.gps_lat or '' }} {{ s.gps_lon or '' }}</td><td>{{ s.taken_by }}</td></tr>{% else %}<tr><td colspan="5" class="muted">No samples recorded</td></tr>{% endfor %}</tbody></table>
+  <form class="stack" method="post" action="/lots/{{ lot.id }}/samples">
+    <label>Tag ID<input name="tag_id" required></label><label>Taken at<input type="datetime-local" name="taken_at" required></label>
+    <label>Chainage<input name="chainage"></label><label>GPS latitude<input name="gps_lat"></label><label>GPS longitude<input name="gps_lon"></label>
+    <button type="submit">Record sample</button>
+  </form>
+</section>
+{% endblock %}

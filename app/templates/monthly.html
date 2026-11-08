@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Monthly quality report · {{ rep.month }}</h1>
+<form class="inline" method="get" action="/reports/monthly"><label>Month<input type="month" name="month" value="{{ rep.month }}"></label><button class="secondary" type="submit">Show</button></form>
+<div class="kpis">
+  <div class="kpi"><b>{{ rep.lots|length }}</b>lots placed</div>
+  <div class="kpi"><b>{{ rep.pass_rate if rep.pass_rate is not none else '—' }}{% if rep.pass_rate is not none %}%{% endif %}</b>individual results passing</div>
+  <div class="kpi"><b>{{ rep.ncrs_raised }}</b>NCRs raised this month</div>
+  <div class="kpi"><b class="{% if rep.ncrs_open %}bad{% endif %}">{{ rep.ncrs_open|length }}</b>NCRs open now</div>
+</div>
+<section class="card"><h2>Tests against the plan</h2>
+  <div class="tbl"><table><thead><tr><th>BOQ</th><th>Parameter</th><th class="n">Required</th><th class="n">Done</th><th class="n">Mean</th><th class="n">Spread</th><th class="n">Consultant / independent share</th></tr></thead><tbody>
+  {% for l in rep.lines %}<tr><td class="mono">{{ l.boq_code }}</td><td>{{ l.parameter }} {% if l.unit %}<span class="muted">({{ l.unit }})</span>{% endif %}</td><td class="n">{{ l.required or '—' }}</td><td class="n {% if l.required and l.done < l.required %}bad{% endif %}">{{ l.done }}</td><td class="n">{{ l.mean|num }}</td><td class="n">{{ l.spread|num }}</td><td class="n">{{ l.verification_pct }}%</td></tr>
+  {% else %}<tr><td colspan="7" class="muted">No lots placed this month</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="card"><h2>Lots by status</h2><p>{% for s, n in rep.status_counts.items() %}<span class="pill {{ s }}">{{ s }} {{ n }}</span> {% endfor %}</p></section>
+<section class="card"><h2>Open NCRs</h2>
+  <table><tbody>{% for n in rep.ncrs_open %}<tr><td>NCR {{ n.id }}</td><td>{{ n.description }}</td><td>{{ n.raised_at[:10] }}</td></tr>{% else %}<tr><td class="muted">None</td></tr>{% endfor %}</tbody></table>
+</section>
+{% endblock %}

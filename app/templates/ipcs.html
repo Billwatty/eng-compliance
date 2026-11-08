@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Interim Payment Certificates</h1>
+<section class="card"><table><thead><tr><th>IPC</th><th>Period end</th><th class="n">Lines</th><th>Status</th><th>Certified</th></tr></thead><tbody>
+{% for i in ipcs %}<tr><td><a href="/ipcs/{{ i.id }}">IPC {{ i.number }}</a></td><td>{{ i.period_end }}</td><td class="n">{{ i.n_lines }}</td><td><span class="pill {{ i.status }}">{{ i.status }}</span></td><td>{{ i.certified_by or '' }} {{ (i.certified_at or '')[:10] }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">No IPCs yet</td></tr>{% endfor %}</tbody></table>
+<form class="inline" method="post" action="/ipcs"><label>Number<input name="number" value="{{ next_number }}" size="4"></label><label>Period end<input type="date" name="period_end" value="{{ today }}"></label><button type="submit">New IPC</button></form>
+</section>
+{% endblock %}

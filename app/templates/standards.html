@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Standards and licences</h1>
+<p class="muted">Each publisher's standards switch to AI extraction when its licence is recorded here. Until then, engineers enter numeric limits and clause numbers by hand. Contract documents and government specifications ({{ open_sources|join(', ') }}) are used with the client's permission.</p>
+<section class="card"><h2>Licence gate</h2>
+  <table><thead><tr><th>Publisher</th><th>Licensed uses</th><th>Mode now</th></tr></thead><tbody>
+  {% for s in status %}<tr><td class="mono">{{ s.publisher }}</td><td>{{ s.uses|join(', ') or 'none' }}</td><td><span class="pill {{ 'pass' if s.mode == 'AI extraction' else 'marginal' }}">{{ s.mode }}</span></td></tr>{% endfor %}
+  </tbody></table>
+</section>
+<section class="card"><h2>Recorded licences</h2>
+  <table><thead><tr><th>Publisher</th><th>Holder</th><th>Uses</th><th>Customers</th><th>Expires</th><th>Reference</th></tr></thead><tbody>
+  {% for l in licences %}<tr><td>{{ l.publisher }}</td><td>{{ l.holder }}</td><td class="mono">{{ l.uses_json }}</td><td>{{ l.customers }}</td><td>{{ l.expires_on or '—' }}</td><td>{{ l.reference }}</td></tr>{% else %}<tr><td colspan="6" class="muted">No licences yet. All licensed standards use manual entry.</td></tr>{% endfor %}
+  </tbody></table>
+  <form class="stack" method="post" action="/licences">
+    <label>Publisher<select name="publisher">{% for s in status %}<option>{{ s.publisher }}</option>{% endfor %}</select></label>
+    <label>Licence holder<input name="holder" required></label>
+    <label>Uses<select name="uses" multiple size="3"><option value="store">store</option><option value="ai_extract">ai_extract</option><option value="store_excerpt">store_excerpt</option></select></label>
+    <label>Customers covered<input name="customers"></label>
+    <label>Expires on<input type="date" name="expires_on"></label>
+    <label>Agreement reference<input name="reference"></label>
+    <button type="submit">Record licence</button>
+  </form>
+  <p class="muted">Only the Resident Engineer can record licences in this pilot.</p>
+</section>
+{% endblock %}

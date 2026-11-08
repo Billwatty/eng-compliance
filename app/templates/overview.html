@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ contract.name }}</h1>
+<p class="muted">{{ contract.employer }} · Consultant: {{ contract.consultant }} · Contractor: {{ contract.contractor }}</p>
+<div class="kpis">
+  <div class="kpi"><b>{{ stats.rules_live }}</b>rules in force</div>
+  <div class="kpi"><b>{{ stats.rules_draft }}</b>rules awaiting approval</div>
+  <div class="kpi"><b class="{% if stats.ncrs_open %}bad{% endif %}">{{ stats.ncrs_open }}</b>open NCRs</div>
+  <div class="kpi"><b>{{ stats.docs_waiting }}</b>documents to check</div>
+  <div class="kpi"><b>{{ 'Intact' if chain.ok else 'BROKEN' }}</b>audit ledger, {{ chain.entries }} entries</div>
+</div>
+<div class="grid">
+  <section class="card"><h2>Lots by status</h2>
+    <table><tbody>{% for s in stats.lots %}<tr><td><span class="pill {{ s.status }}">{{ s.status }}</span></td><td class="n">{{ s.n }}</td></tr>{% else %}<tr><td class="muted">No lots yet</td></tr>{% endfor %}</tbody></table>
+    <a href="/lots">Open lots</a>
+  </section>
+  <section class="card"><h2>Recent payment certificates</h2>
+    <table><tbody>{% for i in stats.ipcs %}<tr><td><a href="/ipcs/{{ i.id }}">IPC {{ i.number }}</a></td><td>{{ i.period_end }}</td><td><span class="pill {{ i.status }}">{{ i.status }}</span></td></tr>{% else %}<tr><td class="muted">No IPCs yet</td></tr>{% endfor %}</tbody></table>
+    <a href="/ipcs">All IPCs</a>
+  </section>
+  <section class="card"><h2>How a payment line gets certified</h2>
+    <p>Quality: each layer is tested, the rules engine judges it, and an engineer releases the hold point.</p>
+    <p>Payment: each claimed line must be covered by released lots, with no open NCRs and no chainage claimed twice. A person reviews every line. Only the Resident Engineer certifies.</p>
+  </section>
+</div>
+{% endblock %}

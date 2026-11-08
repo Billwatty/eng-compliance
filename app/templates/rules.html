@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>BOQ and rule cards</h1>
+<section class="card">
+  <h2>Bill of quantities</h2>
+  <div class="tbl"><table><thead><tr><th>Code</th><th>Description</th><th>Unit</th><th class="n">Quantity</th><th class="n">Rate</th></tr></thead><tbody>
+  {% for b in boq %}<tr><td class="mono">{{ b.code }}</td><td>{{ b.description }}</td><td>{{ b.unit }}</td><td class="n">{{ b.quantity|num }}</td><td class="n">{{ b.rate|num }}</td></tr>{% else %}<tr><td colspan="5" class="muted">No BOQ yet</td></tr>{% endfor %}
+  </tbody></table></div>
+  <form class="inline" method="post" action="/boq/upload" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx" required aria-label="BOQ file">
+    <button class="secondary" type="submit">Import BOQ (CSV or Excel: code, description, unit, quantity, rate, material)</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Rule cards</h2>
+  <p class="muted">A rule is used only after a materials engineer or the Resident Engineer approves it. A change creates a new version; older versions still judge work placed before the change.</p>
+  <div class="tbl"><table><thead><tr><th>Rule</th><th>BOQ</th><th>Measures</th><th>Limit</th><th>Frequency</th><th>Source</th><th>From</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for r in rules %}<tr>
+    <td class="mono">{{ r.rule_code }} v{{ r.version }}</td><td class="mono">{{ r.boq_code }}</td>
+    <td>{{ r.parameter }} {% if r.unit %}<span class="muted">({{ r.unit }})</span>{% endif %}<br><span class="muted">{{ r.method }}</span></td>
+    <td><span class="mono">{{ r.limit_type }}</span><br><span class="mono muted">{{ r.params_json }}</span></td>
+    <td>{% if r.frequency_qty %}1 per {{ r.frequency_qty|num }}{% endif %}</td>
+    <td>{{ r.source_publisher }} {{ r.source_ref }}{% if r.source_quote %}<br><span class="muted">“{{ r.source_quote }}”</span>{% endif %}<br><span class="muted">{{ 'AI draft' if r.drafted_by == 'ai' else 'Entered by hand' }}</span></td>
+    <td>{{ r.effective_from }}</td>
+    <td><span class="pill {{ r.status }}">{{ r.status }}</span>{% if r.approved_by %}<br><span class="muted">{{ r.approved_by }}</span>{% endif %}</td>
+    <td>{% if r.status == 'draft' %}
+      <form method="post" action="/rules/{{ r.id }}/approve"><button type="submit">Approve</button></form>
+      <form method="post" action="/rules/{{ r.id }}/reject"><button class="secondary" type="submit">Reject</button></form>{% endif %}</td>
+  </tr>{% else %}<tr><td colspan="9" class="muted">No rules yet</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<div class="grid">
+<section class="card">
+  <h2>Enter a rule by hand</h2>
+  <p class="muted">Use this for standards without an AI licence: type the numbers and clause number from your licensed copy. No standard text is stored.</p>
+  <form class="stack" method="post" action="/rules">
+    <label>Rule code<input name="rule_code" required placeholder="BASE-DENSITY-01"></label>
+    <label>BOQ code<select name="boq_code">{% for b in boq %}<option>{{ b.code }}</option>{% endfor %}</select></label>
+    <label>Parameter<input name="parameter" required placeholder="field_density_pct_mdd"></label>
+    <label>Unit<input name="unit" placeholder="% MDD"></label>
+    <label>Method<input name="method" placeholder="GHA S1"></label>
+    <label>Limit type<select name="limit_type">{% for t in ['min','max','range','min_and_mean','tolerance','envelope','concrete_cube'] %}<option>{{ t }}</option>{% endfor %}</select></label>
+    <label>Limit values (JSON)<textarea name="params_json" rows="2" required>{"min": 97, "mean_min": 98}</textarea></label>
+    <label>One test per (m², m³ or t)<input name="frequency_qty" placeholder="350"></label>
+    <label>Marginal band<input name="marginal_band" value="0.5"></label>
+    <label>Publisher<input name="source_publisher" required placeholder="MRH, GSA, BSI, ASTM, ISO"></label>
+    <label>Clause<input name="source_ref" required placeholder="Table 12.2"></label>
+    <label>Effective from<input type="date" name="effective_from" value="{{ today }}" required></label>
+    <button type="submit">Save as draft</button>
+  </form>
+</section>
+<section class="card">
+  <h2>Draft rules with AI</h2>
+  <p class="muted">Upload the specification on the Documents page first. AI reads it, drafts rule cards with clause references, and an engineer approves each one. Licensed standards are blocked here until the publisher's AI licence is recorded.</p>
+  <form class="stack" method="post" action="/rules/draft">
+    <label>Specification<select name="document_id" required>{% for d in specs %}<option value="{{ d.id }}">{{ d.filename }} ({{ d.publisher or 'contract' }})</option>{% endfor %}</select></label>
+    <label>Effective from<input type="date" name="effective_from" value="{{ today }}" required></label>
+    <button type="submit" {% if not specs %}disabled{% endif %}>Draft rules</button>
+  </form>
+</section>
+</div>
+{% endblock %}

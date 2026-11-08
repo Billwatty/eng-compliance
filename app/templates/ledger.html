@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Audit ledger</h1>
+<p class="{% if not chain.ok %}bad{% endif %}">{% if chain.ok %}Chain intact: {{ chain.entries }} entries, each linked to the one before by SHA-256.{% else %}Chain BROKEN at entry {{ chain.first_bad_id }}: {{ chain.reason }}.{% endif %}</p>
+<section class="card"><div class="tbl"><table><thead><tr><th>#</th><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Details</th><th>Hash</th></tr></thead><tbody>
+{% for e in entries %}<tr><td>{{ e.id }}</td><td class="mono">{{ e.at[:19] }}</td><td>{{ e.actor }}</td><td class="mono">{{ e.action }}</td><td>{{ e.entity }} {{ e.entity_id or '' }}</td><td class="mono" style="max-width:420px;word-break:break-word">{{ e.payload_json }}</td><td class="mono">{{ e.hash[:10] }}…</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}
